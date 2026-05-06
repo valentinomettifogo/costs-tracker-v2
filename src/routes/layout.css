@@ -1,0 +1,24 @@
+@import 'tailwindcss';
+@plugin '@tailwindcss/forms';
+@plugin '@tailwindcss/typography';
+@plugin 'daisyui/index.js';
+
+:root {
+	/* Vue-like light palette: white/gray base with green accent and near-black text */
+	--color-base-100: #ffffff;
+	--color-base-200: #f3f4f6;
+	--color-base-300: #e5e7eb;
+	--color-base-content: #111827;
+	--color-primary: #42b883;
+	--color-primary-content: #062a1b;
+	--color-secondary: #2f855a;
+	--color-secondary-content: #f5fffa;
+	--color-accent: #42b883;
+	--color-accent-content: #062a1b;
+	--color-neutral: #111827;
+	--color-neutral-content: #f9fafb;
+	--color-info: #0ea5e9;
+	--color-success: #16a34a;
+	--color-warning: #d97706;
+	--color-error: #dc2626;
+}
