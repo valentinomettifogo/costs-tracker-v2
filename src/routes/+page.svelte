@@ -400,6 +400,7 @@
 								<input
 									class="input input-bordered w-full"
 									type="number"
+									inputmode="decimal"
 									name="amount"
 									min="0.01"
 									step="0.01"
