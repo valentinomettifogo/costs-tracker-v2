@@ -1,17 +1,19 @@
 ## cose non ancora inserite
 
-- [ ] filtro in tabella con il periodo
+- [X] filtro in tabella con il periodo
 - [ ] export to csv
 - [X] nel progetto vecchio i segni erano birbanti, metteli corretti (i costi positivi sono dei rientri)
-- [ ] quando cancello un record vorrei un modal di conferma
+- [X] quando cancello un record vorrei un modal di conferma
+
+- [ ] notifiche per le aggiunte
 
 ## Miglioramenti
 
-- [ ] stilizza i simboli
+- [X] stilizza i simboli
 
 ## Bugs
 
-- [ ] il tasto "copia" del link dello space non copia
+- [X] il tasto "copia" del link dello space non copia
 
 ## cose da ricordare?
 
