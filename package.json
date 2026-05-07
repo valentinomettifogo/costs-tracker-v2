@@ -27,6 +27,7 @@
 	"dependencies": {
 		"@supabase/ssr": "^0.10.2",
 		"@supabase/supabase-js": "^2.105.3",
-		"daisyui": "^5.5.19"
+		"daisyui": "^5.5.19",
+		"lucide-svelte": "^1.0.1"
 	}
 }

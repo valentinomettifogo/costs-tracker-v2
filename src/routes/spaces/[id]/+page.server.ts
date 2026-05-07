@@ -154,6 +154,49 @@ export const actions: Actions = {
 		return {};
 	},
 
+	updateCategory: async ({ request, locals, params }) => {
+		const { user } = await locals.safeGetSession();
+		if (!user) throw redirect(303, '/login');
+
+		const form = await request.formData();
+		const id = String(form.get('id') ?? '');
+		const name = String(form.get('name') ?? '').trim();
+		const type = String(form.get('type') ?? '').trim();
+
+		if (!id || !name || !type) return fail(400, { categoryError: 'Name and type are required.' });
+
+		const admin = getAdminClient();
+		if (!admin) return fail(500, { categoryError: 'Service unavailable.' });
+
+		// Verify the user is a member of this space
+		const { data: conn } = await locals.supabase
+			.from('costs_spaces_connections')
+			.select('space_id')
+			.eq('space_id', params.id)
+			.eq('user_id', user.id)
+			.maybeSingle();
+
+		if (!conn) return fail(403, { categoryError: 'Not authorized.' });
+
+		// Verify the category belongs to this space
+		const { data: cat } = await admin
+			.from('costs_categories')
+			.select('space_id')
+			.eq('id', id)
+			.single();
+
+		if (!cat || cat.space_id !== params.id) return fail(403, { categoryError: 'Not authorized.' });
+
+		const { error: err } = await admin
+			.from('costs_categories')
+			.update({ name, type })
+			.eq('id', id);
+
+		if (err) return fail(500, { categoryError: err.message });
+
+		return {};
+	},
+
 	deleteCategory: async ({ request, locals }) => {
 		const { user } = await locals.safeGetSession();
 		if (!user) throw redirect(303, '/login');

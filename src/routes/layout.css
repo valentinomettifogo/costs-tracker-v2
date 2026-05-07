@@ -3,6 +3,14 @@
 @plugin '@tailwindcss/typography';
 @plugin 'daisyui/index.js';
 
+@theme {
+	--font-sans: 'Be Vietnam Pro', ui-sans-serif, system-ui, sans-serif;
+}
+
+body {
+	font-family: 'Be Vietnam Pro', ui-sans-serif, system-ui, sans-serif;
+}
+
 :root {
 	/* Vue-like light palette: white/gray base with green accent and near-black text */
 	--color-base-100: #ffffff;

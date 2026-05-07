@@ -89,7 +89,12 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			await Promise.all(
 				connections.map(async (c: { user_id: string }) => {
 					const { data } = await adminData.auth.admin.getUserById(c.user_id);
-					if (data.user?.email) membersMap[c.user_id] = data.user.email;
+					const u = data.user;
+					membersMap[c.user_id] =
+						u?.user_metadata?.display_name ??
+						u?.user_metadata?.full_name ??
+						u?.email ??
+						c.user_id.slice(0, 8);
 				})
 			);
 		}
@@ -117,6 +122,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		activeSpace: space as Space,
 		categories: (categories as Category[]) ?? [],
 		membersMap,
+		userId: user.id,
 		movements: (movements as unknown as MovementRow[]) ?? [],
 		totalMovements: count ?? 0,
 		limit,
@@ -148,8 +154,22 @@ export const actions: Actions = {
 		const admin = getAdminClient();
 		if (!admin) return fail(500, { movementError: 'Servizio non disponibile.' });
 
+		// Determine sign from category type
+		let isIncome = false;
+		if (category_id) {
+			const { data: catData } = await admin
+				.from('costs_categories')
+				.select('type')
+				.eq('id', category_id)
+				.maybeSingle();
+			isIncome = catData?.type === 'income';
+		}
+		const invert_sign = form.get('invert_sign') === 'on';
+		const sign = (isIncome ? 1 : -1) * (invert_sign ? -1 : 1);
+		const finalAmount = Math.abs(amount) * sign;
+
 		const { error: err } = await admin.from('costs_movements').insert({
-			amount,
+			amount: finalAmount,
 			date,
 			description,
 			category_id,
@@ -188,9 +208,23 @@ export const actions: Actions = {
 		const admin = getAdminClient();
 		if (!admin) return fail(500, { movementError: 'Servizio non disponibile.' });
 
+		// Determine sign from category type
+		let isIncome = false;
+		if (category_id) {
+			const { data: catData } = await admin
+				.from('costs_categories')
+				.select('type')
+				.eq('id', category_id)
+				.maybeSingle();
+			isIncome = catData?.type === 'income';
+		}
+		const invert_sign = form.get('invert_sign') === 'on';
+		const sign = (isIncome ? 1 : -1) * (invert_sign ? -1 : 1);
+		const finalAmount = Math.abs(amount) * sign;
+
 		const { error: err } = await admin
 			.from('costs_movements')
-			.update({ amount, date, description, category_id, expense_user_id, tags })
+			.update({ amount: finalAmount, date, description, category_id, expense_user_id, tags })
 			.eq('id', id)
 			.eq('space_id', activeSpaceId);
 
