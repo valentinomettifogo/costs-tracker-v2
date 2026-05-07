@@ -5,6 +5,8 @@ import { getAdminClient } from '$lib/server/auth';
 const DEFAULT_LIMIT = 20;
 const PAGE_STEP = 20;
 const MAX_LIMIT = 200;
+const YEARS_SCAN_PAGE_SIZE = 1000;
+const YEARS_SCAN_MAX_ROWS = 10000;
 
 type Space = {
 	id: string;
@@ -42,11 +44,21 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	const empty = {
 		activeSpace: null as Space | null,
 		categories: [] as Category[],
+		availableYears: [] as number[],
 		membersMap: {} as Record<string, string>,
 		movements: [] as MovementRow[],
 		totalMovements: 0,
 		limit: DEFAULT_LIMIT,
-		pageStep: PAGE_STEP
+		pageStep: PAGE_STEP,
+		filters: {
+			year: null as number | null,
+			month: null as number | null,
+			ytd: false,
+			categoryId: null as string | null,
+			query: '',
+			tag: null as string | null
+		},
+		filterQueryString: ''
 	};
 
 	if (!activeSpaceId) return empty;
@@ -106,27 +118,129 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			? DEFAULT_LIMIT
 			: Math.min(limitParam, MAX_LIMIT);
 
+	const yearRaw = url.searchParams.get('year')?.trim() ?? '';
+	const monthRaw = url.searchParams.get('month')?.trim() ?? '';
+	const ytdRaw = url.searchParams.get('ytd')?.trim().toLowerCase() ?? '';
+	const hasYearParam = url.searchParams.has('year');
+	const hasMonthParam = url.searchParams.has('month');
+	const hasYtdParam = url.searchParams.has('ytd');
+	const categoryId = url.searchParams.get('category')?.trim() || null;
+	const query = (url.searchParams.get('q')?.trim() ?? '').slice(0, 100);
+	const tag = (url.searchParams.get('tag')?.trim() ?? '').slice(0, 40) || null;
+
+	const parsedYear = Number.parseInt(yearRaw, 10);
+	const parsedMonth = Number.parseInt(monthRaw, 10);
+	let year = Number.isInteger(parsedYear) && parsedYear >= 2000 && parsedYear <= 2100 ? parsedYear : null;
+	const month = Number.isInteger(parsedMonth) && parsedMonth >= 1 && parsedMonth <= 12 ? parsedMonth : null;
+	const ytd = ['1', 'true', 'on', 'yes'].includes(ytdRaw);
+
+	const today = new Date();
+	const todayIso = today.toISOString().slice(0, 10);
+	const currentYear = today.getUTCFullYear();
+	const currentMonth = today.getUTCMonth() + 1;
+
 	// Usa admin client per bypassare RLS nel join costs_categories
 	const movementsClient = adminData ?? locals.supabase;
-	const { data: movements, count } = await movementsClient
+
+	const yearSet = new Set<number>();
+	let scannedRows = 0;
+	let from = 0;
+
+	while (scannedRows < YEARS_SCAN_MAX_ROWS) {
+		const to = from + YEARS_SCAN_PAGE_SIZE - 1;
+		const { data: dateRows } = await movementsClient
+			.from('costs_movements')
+			.select('date')
+			.eq('space_id', activeSpaceId)
+			.order('date', { ascending: false })
+			.range(from, to);
+
+		if (!dateRows || dateRows.length === 0) break;
+
+		for (const row of dateRows as Array<{ date: string | null }>) {
+			if (!row.date) continue;
+			const y = Number.parseInt(row.date.slice(0, 4), 10);
+			if (Number.isInteger(y)) yearSet.add(y);
+		}
+
+		scannedRows += dateRows.length;
+		if (dateRows.length < YEARS_SCAN_PAGE_SIZE) break;
+		from += YEARS_SCAN_PAGE_SIZE;
+	}
+
+	const availableYears = Array.from(yearSet).sort((a, b) => b - a);
+	const useCurrentPeriodDefaults = !hasYearParam && !hasMonthParam && !hasYtdParam;
+	if (useCurrentPeriodDefaults) {
+		year = availableYears.includes(currentYear) ? currentYear : year;
+	}
+
+	if (year && !availableYears.includes(year)) {
+		year = null;
+	}
+
+	const monthForFiltering = ytd
+		? null
+		: year
+			? useCurrentPeriodDefaults && !hasMonthParam
+				? currentMonth
+				: month
+			: null;
+
+	let fromDate: string | null = null;
+	let toDate: string | null = null;
+
+	if (ytd) {
+		fromDate = `${currentYear}-01-01`;
+		toDate = todayIso;
+	} else if (year && monthForFiltering) {
+		const monthPadded = String(monthForFiltering).padStart(2, '0');
+		const lastDay = new Date(Date.UTC(year, monthForFiltering, 0)).getUTCDate();
+		fromDate = `${year}-${monthPadded}-01`;
+		toDate = `${year}-${monthPadded}-${String(lastDay).padStart(2, '0')}`;
+	} else if (year) {
+		fromDate = `${year}-01-01`;
+		toDate = `${year}-12-31`;
+	}
+
+	let movementsQuery = movementsClient
 		.from('costs_movements')
 		.select(
 			'id, amount, date, description, user_id, expense_user_id, tags, category_id, costs_categories(id, name, type)',
 			{ count: 'exact' }
 		)
 		.eq('space_id', activeSpaceId)
-		.order('date', { ascending: false })
-		.range(0, limit - 1);
+		.order('date', { ascending: false });
+
+	if (fromDate) movementsQuery = movementsQuery.gte('date', fromDate);
+	if (toDate) movementsQuery = movementsQuery.lte('date', toDate);
+	if (categoryId) movementsQuery = movementsQuery.eq('category_id', categoryId);
+	if (query) movementsQuery = movementsQuery.ilike('description', `%${query}%`);
+	if (tag) movementsQuery = movementsQuery.contains('tags', [tag]);
+
+	const { data: movements, count } = await movementsQuery.range(0, limit - 1);
+
+	const filterParams = new URLSearchParams(url.searchParams);
+	filterParams.delete('limit');
 
 	return {
 		activeSpace: space as Space,
 		categories: (categories as Category[]) ?? [],
+		availableYears,
 		membersMap,
 		userId: user.id,
 		movements: (movements as unknown as MovementRow[]) ?? [],
 		totalMovements: count ?? 0,
 		limit,
-		pageStep: PAGE_STEP
+		pageStep: PAGE_STEP,
+		filters: {
+			year,
+			month: monthForFiltering,
+			ytd,
+			categoryId,
+			query,
+			tag
+		},
+		filterQueryString: filterParams.toString()
 	};
 };
 

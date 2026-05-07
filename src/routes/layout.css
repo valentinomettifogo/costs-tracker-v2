@@ -30,3 +30,25 @@ body {
 	--color-warning: #d97706;
 	--color-error: #dc2626;
 }
+
+@media (max-width: 768px) {
+	/* Improve mobile readability and touch ergonomics for all forms */
+	.input,
+	.select,
+	.textarea,
+	.btn {
+		font-size: 1rem;
+		line-height: 1.25rem;
+	}
+
+	.input,
+	.select,
+	.textarea {
+		min-height: 2.75rem;
+	}
+
+	.btn {
+		min-height: 2.75rem;
+		min-width: 2.75rem;
+	}
+}

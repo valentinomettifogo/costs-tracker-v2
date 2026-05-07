@@ -61,17 +61,18 @@
 	}
 </script>
 
-<div class="space-y-6">
-	<div class="flex flex-wrap items-center gap-3">
-		<a href="/spaces" class="btn btn-ghost btn-sm">← Spaces</a>
-		<h1 class="text-3xl font-bold">{data.space.name}</h1>
-		{#if data.space.owner_id === data.userId}
-			<span class="badge badge-primary">Owner</span>
-		{/if}
-	</div>
+<div class="-mx-3 space-y-2 md:mx-0">
+	<div class="space-y-6">
+		<div class="flex flex-wrap items-center gap-3">
+			<a href="/spaces" class="btn btn-ghost btn-sm">← Spaces</a>
+			<h1 class="text-3xl font-bold">{data.space.name}</h1>
+			{#if data.space.owner_id === data.userId}
+				<span class="badge badge-primary">Owner</span>
+			{/if}
+		</div>
 
-	<!-- Impostazioni spazio -->
-	<section class="rounded-box bg-base-100 p-6 shadow-sm">
+		<!-- Impostazioni spazio -->
+		<section class="rounded-box bg-base-100 p-6 shadow-sm">
 		<div class="mb-4 flex items-center justify-between">
 			<h2 class="text-lg font-semibold">Space settings</h2>
 			{#if data.space.owner_id === data.userId}
@@ -125,11 +126,11 @@
 				</div>
 			</dl>
 		{/if}
-	</section>
+		</section>
 
-	<!-- Members (owner only) -->
-	{#if data.space.owner_id === data.userId}
-		<section class="rounded-box bg-base-100 p-6 shadow-sm">
+		<!-- Members (owner only) -->
+		{#if data.space.owner_id === data.userId}
+			<section class="rounded-box bg-base-100 p-6 shadow-sm">
 			<h2 class="mb-4 text-lg font-semibold">Members</h2>
 
 			{#if data.members.length === 0}
@@ -153,10 +154,10 @@
 					{/each}
 				</ul>
 			{/if}
-		</section>
+			</section>
 
-		<!-- Invite link (owner only) -->
-		<section class="rounded-box bg-base-100 p-6 shadow-sm">
+			<!-- Invite link (owner only) -->
+			<section class="rounded-box bg-base-100 p-6 shadow-sm">
 			<h2 class="mb-4 text-lg font-semibold">Invite link</h2>
 
 			{#if data.activeInvite}
@@ -190,11 +191,11 @@
 					<button class="btn btn-primary btn-sm" type="submit">Generate invite link</button>
 				</form>
 			{/if}
-		</section>
-	{/if}
+			</section>
+		{/if}
 
-	<!-- Categories -->
-	<section class="rounded-box bg-base-100 p-6 shadow-sm">
+		<!-- Categories -->
+		<section class="rounded-box bg-base-100 p-6 shadow-sm">
 		<div class="mb-4 flex items-center justify-between">
 				<h2 class="text-lg font-semibold">Categories</h2>
 				<button class="btn btn-primary btn-sm" onclick={() => (addingCategory = !addingCategory)}>
@@ -294,5 +295,6 @@
 				{/each}
 			</ul>
 		{/if}
-	</section>
+</section>
+	</div>
 </div>

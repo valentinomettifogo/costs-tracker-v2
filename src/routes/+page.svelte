@@ -42,6 +42,34 @@
 	const movementError = $derived((form as { movementError?: string } | undefined)?.movementError);
 	const movementAction = $derived((form as { movementAction?: string } | undefined)?.movementAction);
 	const hasMore = $derived(data.totalMovements > data.limit);
+	const monthOptions = [
+		{ value: 1, label: 'January' },
+		{ value: 2, label: 'February' },
+		{ value: 3, label: 'March' },
+		{ value: 4, label: 'April' },
+		{ value: 5, label: 'May' },
+		{ value: 6, label: 'June' },
+		{ value: 7, label: 'July' },
+		{ value: 8, label: 'August' },
+		{ value: 9, label: 'September' },
+		{ value: 10, label: 'October' },
+		{ value: 11, label: 'November' },
+		{ value: 12, label: 'December' }
+	];
+	const loadMoreHref = $derived(
+		`?${data.filterQueryString ? `${data.filterQueryString}&` : ''}limit=${data.limit + data.pageStep}`
+	);
+
+	function tagFilterHref(tag: string): string {
+		const params = new URLSearchParams(data.filterQueryString);
+		if (data.filters.tag === tag) {
+			params.delete('tag');
+		} else {
+			params.set('tag', tag);
+		}
+		const qs = params.toString();
+		return qs ? `?${qs}` : '/';
+	}
 
 	const groupedCategories = $derived(
 		Object.entries(
@@ -123,8 +151,84 @@
 
 		<!-- Transactions -->
 		<section class="rounded-box bg-base-100 p-2 shadow-sm">
+			<details class="collapse collapse-arrow mb-3 rounded-box border border-base-200">
+				<summary class="collapse-title min-h-0 py-3 text-sm font-medium">Filters</summary>
+				<div class="collapse-content pt-1">
+					{#if data.filters.tag}
+						<div class="mb-2 flex items-center gap-2">
+							<span class="text-xs text-base-content/60">Tag filter:</span>
+							<a href={tagFilterHref(data.filters.tag)} class="badge badge-primary badge-sm">{data.filters.tag} ×</a>
+						</div>
+					{/if}
+					<form method="GET" class="grid grid-cols-1 gap-2 md:grid-cols-5">
+						{#if data.filters.tag}
+							<input type="hidden" name="tag" value={data.filters.tag} />
+						{/if}
+						<label class="form-control">
+							<span class="label-text text-xs">Year</span>
+							<select class="select select-bordered w-full" name="year" disabled={data.filters.ytd}>
+								<option value="">All</option>
+								{#each data.availableYears as y}
+									<option value={y} selected={data.filters.year === y}>{y}</option>
+								{/each}
+							</select>
+						</label>
+
+						<label class="form-control">
+							<span class="label-text text-xs">Month</span>
+							<select
+								class="select select-bordered w-full"
+								name="month"
+								disabled={data.filters.ytd || !data.filters.year}
+							>
+								<option value="">All</option>
+								{#each monthOptions as m}
+									<option value={m.value} selected={data.filters.month === m.value}>{m.label}</option>
+								{/each}
+							</select>
+						</label>
+
+						<label class="form-control">
+							<span class="label-text text-xs">Category</span>
+							<select class="select select-bordered w-full" name="category">
+								<option value="">All</option>
+								{#each data.categories as cat}
+									<option value={cat.id} selected={data.filters.categoryId === cat.id}>{cat.name}</option>
+								{/each}
+							</select>
+						</label>
+
+						<label class="form-control">
+							<span class="label-text text-xs">Search description</span>
+							<input
+								class="input input-bordered w-full"
+								type="search"
+								name="q"
+								placeholder="e.g. rent, groceries"
+								value={data.filters.query}
+							/>
+						</label>
+
+						<div class="flex items-end gap-2">
+							<label class="label cursor-pointer gap-2 pb-1">
+								<input
+									type="checkbox"
+									name="ytd"
+									value="1"
+									class="checkbox checkbox-sm"
+									checked={data.filters.ytd}
+								/>
+								<span class="label-text text-xs">YTD</span>
+							</label>
+							<button type="submit" class="btn btn-primary">Apply</button>
+							<a href="/" class="btn btn-ghost">Reset</a>
+						</div>
+					</form>
+				</div>
+			</details>
+
 			{#if data.movements.length === 0}
-				<p class="text-sm text-base-content/60">No transactions yet. Use the + button to add one.</p>
+				<p class="text-sm text-base-content/60">No transactions found for the selected filters.</p>
 			{:else}
 				<div class="hidden overflow-x-auto md:block">
 					<table class="table table-sm w-full">
@@ -163,7 +267,7 @@
 										{#if m.tags?.length}
 											<div class="flex flex-wrap gap-1">
 												{#each m.tags as tag}
-													<span class="badge badge-ghost badge-sm">{tag}</span>
+													<a href={tagFilterHref(tag)} class="badge badge-ghost badge-sm cursor-pointer hover:badge-primary">{tag}</a>
 												{/each}
 											</div>
 										{/if}
@@ -207,6 +311,13 @@
 							{#if m.description}
 								<p class="mt-1 text-sm text-base-content/60">{m.description}</p>
 							{/if}
+							{#if m.tags?.length}
+								<div class="mt-2 flex flex-wrap gap-1">
+									{#each m.tags as tag}
+										<a href={tagFilterHref(tag)} class="badge badge-ghost badge-sm cursor-pointer hover:badge-primary">{tag}</a>
+									{/each}
+								</div>
+							{/if}
 							<!-- Footer: date + user + actions -->
 							<div class="mt-1 flex items-center justify-between gap-2">
 								<div class="flex flex-wrap items-center gap-2 text-sm text-base-content/40">
@@ -238,7 +349,7 @@
 
 				{#if hasMore}
 					<div class="mt-4 text-center">
-						<a href="?limit={data.limit + data.pageStep}" class="btn btn-ghost btn-sm">
+						<a href={loadMoreHref} class="btn btn-ghost btn-sm">
 							Load more ({data.totalMovements - data.limit} remaining)
 						</a>
 					</div>
@@ -249,7 +360,8 @@
 
 	<!-- Bottone + flottante -->
 	<button
-		class="btn btn-primary btn-circle fixed bottom-20 right-4 z-30 h-14 w-14 text-2xl shadow-lg md:bottom-8 md:right-8"
+		class="btn btn-primary btn-circle fixed bottom-20 right-4 z-30 h-16 w-16 leading-none shadow-lg md:bottom-8 md:right-8"
+		style="font-size: 2.25rem;"
 		type="button"
 		onclick={openCreate}
 		aria-label="Add transaction"
