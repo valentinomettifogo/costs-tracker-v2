@@ -44,9 +44,9 @@ export const actions: Actions = {
 
 		const form = await request.formData();
 		const spaceId = String(form.get('spaceId') ?? '').trim();
-		if (!spaceId) return fail(400, { error: 'ID spazio mancante.' });
+		if (!spaceId) return fail(400, { error: 'Missing space ID.' });
 
-		// Verifica che l'utente abbia accesso allo spazio
+		// Verify that the user has access to this space
 		const { data: conn } = await locals.supabase
 			.from('costs_spaces_connections')
 			.select('space_id')
@@ -54,10 +54,10 @@ export const actions: Actions = {
 			.eq('user_id', user.id)
 			.maybeSingle();
 
-		if (!conn) return fail(403, { error: 'Non hai accesso a questo spazio.' });
+		if (!conn) return fail(403, { error: 'You do not have access to this space.' });
 
 		const admin = getAdminClient();
-		if (!admin) return fail(500, { error: 'Servizio non disponibile.' });
+		if (!admin) return fail(500, { error: 'Service unavailable.' });
 
 		const { error: err } = await admin.auth.admin.updateUserById(user.id, {
 			user_metadata: { ...user.user_metadata, active_space_id: spaceId }
@@ -77,10 +77,10 @@ export const actions: Actions = {
 		const currency = String(form.get('currency') ?? 'EUR').trim();
 		const format = String(form.get('format') ?? 'IT').trim();
 
-		if (!name) return fail(400, { error: 'Il nome è obbligatorio.' });
+		if (!name) return fail(400, { error: 'Name is required.' });
 
 		const admin = getAdminClient();
-		if (!admin) return fail(500, { error: 'Servizio non disponibile.' });
+		if (!admin) return fail(500, { error: 'Service unavailable.' });
 
 		const { data: space, error: spaceErr } = await admin
 			.from('costs_spaces')
@@ -89,7 +89,7 @@ export const actions: Actions = {
 			.single();
 
 		if (spaceErr || !space) {
-			return fail(500, { error: spaceErr?.message ?? 'Errore nella creazione dello spazio.' });
+			return fail(500, { error: spaceErr?.message ?? 'Error creating space.' });
 		}
 
 		await admin

@@ -6,12 +6,11 @@
 	<div class="card w-full max-w-sm bg-base-100 shadow-sm">
 		<div class="card-body items-center gap-4 text-center">
 			<div class="text-5xl">🔗</div>
-			<h1 class="card-title text-xl">Link non valido</h1>
+			<h1 class="card-title text-xl">Invalid link</h1>
 			<p class="text-sm text-base-content/70">
-				Questo link di invito non è più valido o è scaduto. Chiedi al proprietario dello spazio un
-				nuovo invito.
+				This invite link is no longer valid or has expired. Ask the space owner for a new invite.
 			</p>
-			<a href="/" class="btn btn-primary min-h-11 w-full">Torna alla home</a>
+			<a href="/" class="btn btn-primary min-h-11 w-full">Back to home</a>
 		</div>
 	</div>
 </div>

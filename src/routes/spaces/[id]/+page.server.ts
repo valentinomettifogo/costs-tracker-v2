@@ -31,7 +31,7 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 	const { user } = await locals.safeGetSession();
 	if (!user) throw redirect(303, '/login');
 
-	// Verifica accesso allo spazio
+	// Verify access to the space
 	const { data: conn } = await locals.supabase
 		.from('costs_spaces_connections')
 		.select('space_id')
@@ -39,7 +39,7 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 		.eq('user_id', user.id)
 		.maybeSingle();
 
-	if (!conn) throw error(403, 'Non hai accesso a questo spazio.');
+	if (!conn) throw error(403, 'You do not have access to this space.');
 
 	const { data: space } = await locals.supabase
 		.from('costs_spaces')
@@ -47,7 +47,7 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 		.eq('id', params.id)
 		.single();
 
-	if (!space) throw error(404, 'Spazio non trovato.');
+	if (!space) throw error(404, 'Space not found.');
 
 	const { data: categories } = await locals.supabase
 		.from('costs_categories')
@@ -57,7 +57,7 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 
 	const admin = getAdminClient();
 
-	// Carica email di tutti i membri dello spazio (serve a tutti per expense_user display)
+	// Load member emails for all users in this space
 	const membersMap: Record<string, string> = {};
 	if (admin) {
 		const { data: connections } = await admin
@@ -116,10 +116,10 @@ export const actions: Actions = {
 		const currency = String(form.get('currency') ?? '').trim();
 		const format = String(form.get('format') ?? '').trim();
 
-		if (!name) return fail(400, { error: 'Il nome è obbligatorio.' });
+		if (!name) return fail(400, { error: 'Name is required.' });
 
 		const admin = getAdminClient();
-		if (!admin) return fail(500, { error: 'Servizio non disponibile.' });
+		if (!admin) return fail(500, { error: 'Service unavailable.' });
 
 		const { error: err } = await admin
 			.from('costs_spaces')
@@ -129,7 +129,7 @@ export const actions: Actions = {
 
 		if (err) return fail(500, { error: err.message });
 
-		return { success: 'Spazio aggiornato.' };
+		return { success: 'Space updated.' };
 	},
 
 	createCategory: async ({ request, locals, params }) => {
@@ -140,10 +140,10 @@ export const actions: Actions = {
 		const name = String(form.get('name') ?? '').trim();
 		const type = String(form.get('type') ?? '').trim();
 
-		if (!name || !type) return fail(400, { categoryError: 'Nome e tipo obbligatori.' });
+		if (!name || !type) return fail(400, { categoryError: 'Name and type are required.' });
 
 		const admin = getAdminClient();
-		if (!admin) return fail(500, { categoryError: 'Servizio non disponibile.' });
+		if (!admin) return fail(500, { categoryError: 'Service unavailable.' });
 
 		const { error: err } = await admin
 			.from('costs_categories')
@@ -172,7 +172,7 @@ export const actions: Actions = {
 		if (!user) throw redirect(303, '/login');
 
 		const admin = getAdminClient();
-		if (!admin) return fail(500, { error: 'Servizio non disponibile.' });
+		if (!admin) return fail(500, { error: 'Service unavailable.' });
 
 		const { data: space } = await admin
 			.from('costs_spaces')
@@ -180,9 +180,9 @@ export const actions: Actions = {
 			.eq('id', params.id)
 			.single();
 
-		if (!space || space.owner_id !== user.id) return fail(403, { error: 'Non autorizzato.' });
+		if (!space || space.owner_id !== user.id) return fail(403, { error: 'Not authorized.' });
 
-		// Disattiva tutti gli inviti precedenti per questo spazio
+		// Disable all previous invites for this space
 		await admin
 			.from('costs_space_invites')
 			.update({ is_active: false })
@@ -205,7 +205,7 @@ export const actions: Actions = {
 		if (!user) throw redirect(303, '/login');
 
 		const admin = getAdminClient();
-		if (!admin) return fail(500, { error: 'Servizio non disponibile.' });
+		if (!admin) return fail(500, { error: 'Service unavailable.' });
 
 		const { data: space } = await admin
 			.from('costs_spaces')
@@ -213,7 +213,7 @@ export const actions: Actions = {
 			.eq('id', params.id)
 			.single();
 
-		if (!space || space.owner_id !== user.id) return fail(403, { error: 'Non autorizzato.' });
+		if (!space || space.owner_id !== user.id) return fail(403, { error: 'Not authorized.' });
 
 		await admin
 			.from('costs_space_invites')
@@ -230,10 +230,10 @@ export const actions: Actions = {
 		const form = await request.formData();
 		const targetUserId = String(form.get('userId') ?? '');
 
-		if (!targetUserId) return fail(400, { error: 'Utente non specificato.' });
+		if (!targetUserId) return fail(400, { error: 'User not specified.' });
 
 		const admin = getAdminClient();
-		if (!admin) return fail(500, { error: 'Servizio non disponibile.' });
+		if (!admin) return fail(500, { error: 'Service unavailable.' });
 
 		const { data: space } = await admin
 			.from('costs_spaces')
@@ -241,9 +241,9 @@ export const actions: Actions = {
 			.eq('id', params.id)
 			.single();
 
-		if (!space || space.owner_id !== user.id) return fail(403, { error: 'Non autorizzato.' });
+		if (!space || space.owner_id !== user.id) return fail(403, { error: 'Not authorized.' });
 		if (targetUserId === space.owner_id)
-			return fail(400, { error: 'Non puoi rimuovere il proprietario.' });
+			return fail(400, { error: 'You cannot remove the owner.' });
 
 		await admin
 			.from('costs_spaces_connections')

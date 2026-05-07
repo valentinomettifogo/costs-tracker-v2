@@ -2,6 +2,8 @@
 
 - [ ] filtro in tabella con il periodo
 - [ ] export to csv
+- [X] nel progetto vecchio i segni erano birbanti, metteli corretti (i costi positivi sono dei rientri)
+- [ ] quando cancello un record vorrei un modal di conferma
 
 ## Miglioramenti
 
