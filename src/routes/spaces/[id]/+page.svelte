@@ -6,6 +6,7 @@
 	let addingCategory = $state(false);
 	let copied = $state(false);
 	let editingCategoryId = $state<string | null>(null);
+	let inviteInput = $state<HTMLInputElement | null>(null);
 
 	const categoryTypes = [
 		{ value: 'needs', label: 'Needs' },
@@ -27,12 +28,36 @@
 
 	const categoryError = $derived((form as { categoryError?: string } | undefined)?.categoryError);
 
-	function copyLink() {
+	function copyWithFallback(text: string) {
+		if (!inviteInput) return false;
+
+		inviteInput.focus();
+		inviteInput.select();
+		inviteInput.setSelectionRange(0, text.length);
+
+		return document.execCommand('copy');
+	}
+
+	async function copyLink() {
 		if (!inviteUrl) return;
-		navigator.clipboard.writeText(inviteUrl).then(() => {
+
+		const clipboardAvailable =
+			typeof navigator !== 'undefined' &&
+			!!navigator.clipboard?.writeText &&
+			typeof window !== 'undefined' &&
+			window.isSecureContext;
+
+		const copySucceeded = clipboardAvailable
+			? await navigator.clipboard
+					.writeText(inviteUrl)
+					.then(() => true)
+					.catch(() => copyWithFallback(inviteUrl))
+			: copyWithFallback(inviteUrl);
+
+		if (!copySucceeded) return;
+
 			copied = true;
 			setTimeout(() => (copied = false), 2000);
-		});
 	}
 </script>
 
@@ -141,6 +166,7 @@
 				</p>
 				<div class="mb-4 flex gap-2">
 					<input
+						bind:this={inviteInput}
 						class="input input-bordered input-sm w-full font-mono text-xs"
 						type="text"
 						readonly
