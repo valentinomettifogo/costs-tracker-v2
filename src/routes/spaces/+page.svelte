@@ -51,20 +51,31 @@
 	{:else}
 		<div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
 			{#each data.spaces as space (space.id)}
-				<a
-					href="/spaces/{space.id}"
-					class="card bg-base-100 shadow-sm transition-shadow hover:shadow-md"
-				>
+				<div class="card bg-base-100 shadow-sm transition-shadow hover:shadow-md">
 					<div class="card-body">
-						<h2 class="card-title">{space.name}</h2>
-						<p class="text-sm text-base-content/60">{space.currency} · {space.format}</p>
-						{#if space.owner_id === data.userId}
-							<div class="mt-1">
-								<span class="badge badge-primary badge-sm">Proprietario</span>
-							</div>
-						{/if}
+						<div class="flex items-start justify-between gap-2">
+							<a href="/spaces/{space.id}" class="min-w-0 flex-1">
+								<h2 class="card-title">{space.name}</h2>
+								<p class="text-sm text-base-content/60">{space.currency} · {space.format}</p>
+								{#if space.owner_id === data.userId}
+									<div class="mt-1">
+										<span class="badge badge-primary badge-sm">Proprietario</span>
+									</div>
+								{/if}
+							</a>
+							<form method="POST" action="?/setActive">
+								<input type="hidden" name="spaceId" value={space.id} />
+								<button
+									class="btn btn-ghost btn-xs text-xl leading-none"
+									type="submit"
+									title={space.id === data.activeSpaceId ? 'Spazio attivo' : 'Imposta come attivo'}
+								>
+									{space.id === data.activeSpaceId ? '⭐' : '☆'}
+								</button>
+							</form>
+						</div>
 					</div>
-				</a>
+				</div>
 			{/each}
 		</div>
 	{/if}

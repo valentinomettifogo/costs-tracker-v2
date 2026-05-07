@@ -32,10 +32,42 @@ export const load: PageServerLoad = async ({ locals }) => {
 		spaces = (data as Space[]) ?? [];
 	}
 
-	return { spaces, userId: user.id };
+	const activeSpaceId = (user.user_metadata?.active_space_id as string | undefined) ?? null;
+
+	return { spaces, userId: user.id, activeSpaceId };
 };
 
 export const actions: Actions = {
+	setActive: async ({ request, locals }) => {
+		const { user } = await locals.safeGetSession();
+		if (!user) throw redirect(303, '/login');
+
+		const form = await request.formData();
+		const spaceId = String(form.get('spaceId') ?? '').trim();
+		if (!spaceId) return fail(400, { error: 'ID spazio mancante.' });
+
+		// Verifica che l'utente abbia accesso allo spazio
+		const { data: conn } = await locals.supabase
+			.from('costs_spaces_connections')
+			.select('space_id')
+			.eq('space_id', spaceId)
+			.eq('user_id', user.id)
+			.maybeSingle();
+
+		if (!conn) return fail(403, { error: 'Non hai accesso a questo spazio.' });
+
+		const admin = getAdminClient();
+		if (!admin) return fail(500, { error: 'Servizio non disponibile.' });
+
+		const { error: err } = await admin.auth.admin.updateUserById(user.id, {
+			user_metadata: { ...user.user_metadata, active_space_id: spaceId }
+		});
+
+		if (err) return fail(500, { error: err.message });
+
+		return { activated: true };
+	},
+
 	create: async ({ request, locals }) => {
 		const { user } = await locals.safeGetSession();
 		if (!user) throw redirect(303, '/login');

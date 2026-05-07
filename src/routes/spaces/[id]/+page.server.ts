@@ -55,27 +55,33 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 		.eq('space_id', params.id)
 		.order('name');
 
+	const admin = getAdminClient();
+
+	// Carica email di tutti i membri dello spazio (serve a tutti per expense_user display)
+	const membersMap: Record<string, string> = {};
+	if (admin) {
+		const { data: connections } = await admin
+			.from('costs_spaces_connections')
+			.select('user_id')
+			.eq('space_id', params.id);
+
+		if (connections) {
+			await Promise.all(
+				connections.map(async (c: { user_id: string }) => {
+					const { data } = await admin.auth.admin.getUserById(c.user_id);
+					if (data.user?.email) membersMap[c.user_id] = data.user.email;
+				})
+			);
+		}
+	}
+
 	let members: Member[] = [];
 	let activeInvite: Invite | null = null;
 
 	if (space.owner_id === user.id) {
-		const admin = getAdminClient();
+		members = Object.entries(membersMap).map(([id, email]) => ({ id, email }));
+
 		if (admin) {
-			const { data: connections } = await admin
-				.from('costs_spaces_connections')
-				.select('user_id')
-				.eq('space_id', params.id);
-
-			if (connections) {
-				const memberResults = await Promise.all(
-					connections.map(async (c: { user_id: string }) => {
-						const { data } = await admin.auth.admin.getUserById(c.user_id);
-						return { id: c.user_id, email: data.user?.email ?? 'Utente sconosciuto' };
-					})
-				);
-				members = memberResults;
-			}
-
 			const { data: invite } = await admin
 				.from('costs_space_invites')
 				.select('id, expires_at')

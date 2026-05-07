@@ -18,11 +18,11 @@
 		savings: 'badge-primary'
 	};
 
-	const categoryError = $derived((form as { categoryError?: string } | undefined)?.categoryError);
-
 	const inviteUrl = $derived(
 		data.activeInvite ? `${data.origin}/spaces/join/${data.activeInvite.id}` : ''
 	);
+
+	const categoryError = $derived((form as { categoryError?: string } | undefined)?.categoryError);
 
 	function copyLink() {
 		if (!inviteUrl) return;
@@ -99,6 +99,71 @@
 		{/if}
 	</section>
 
+	<!-- Membri (solo proprietario) -->
+	{#if data.space.owner_id === data.userId}
+		<section class="rounded-box bg-base-100 p-6 shadow-sm">
+			<h2 class="mb-4 text-lg font-semibold">Membri</h2>
+
+			{#if data.members.length === 0}
+				<p class="text-sm text-base-content/60">Nessun membro trovato.</p>
+			{:else}
+				<ul class="divide-y divide-base-200">
+					{#each data.members as member (member.id)}
+						<li class="flex items-center justify-between py-2">
+							<span class="text-sm">{member.email}</span>
+							<div class="flex items-center gap-2">
+								{#if member.id === data.userId}
+									<span class="badge badge-sm badge-primary">tu</span>
+								{:else}
+									<form method="POST" action="?/removeMember">
+										<input type="hidden" name="userId" value={member.id} />
+										<button class="btn btn-ghost btn-xs text-error" type="submit">Rimuovi</button>
+									</form>
+								{/if}
+							</div>
+						</li>
+					{/each}
+				</ul>
+			{/if}
+		</section>
+
+		<!-- Link di invito (solo proprietario) -->
+		<section class="rounded-box bg-base-100 p-6 shadow-sm">
+			<h2 class="mb-4 text-lg font-semibold">Link di invito</h2>
+
+			{#if data.activeInvite}
+				<p class="mb-3 text-sm text-base-content/60">
+					Scade il {new Date(data.activeInvite.expires_at).toLocaleDateString('it-IT')}. Chiunque
+					abbia il link e si logga verrà aggiunto a questo spazio.
+				</p>
+				<div class="mb-4 flex gap-2">
+					<input
+						class="input input-bordered input-sm w-full font-mono text-xs"
+						type="text"
+						readonly
+						value={inviteUrl}
+					/>
+					<button class="btn btn-sm btn-outline shrink-0" type="button" onclick={copyLink}>
+						{copied ? '✓ Copiato' : 'Copia'}
+					</button>
+				</div>
+				<div class="flex flex-wrap gap-2">
+					<form method="POST" action="?/generateInvite">
+						<button class="btn btn-sm btn-ghost" type="submit">Rigenera</button>
+					</form>
+					<form method="POST" action="?/revokeInvite">
+						<button class="btn btn-sm btn-ghost text-error" type="submit">Revoca</button>
+					</form>
+				</div>
+			{:else}
+				<p class="mb-4 text-sm text-base-content/60">Nessun link di invito attivo.</p>
+				<form method="POST" action="?/generateInvite">
+					<button class="btn btn-primary btn-sm" type="submit">Genera link di invito</button>
+				</form>
+			{/if}
+		</section>
+	{/if}
+
 	<!-- Categorie -->
 	<section class="rounded-box bg-base-100 p-6 shadow-sm">
 		<div class="mb-4 flex items-center justify-between">
@@ -165,69 +230,4 @@
 			</ul>
 		{/if}
 	</section>
-
-	<!-- Membri (solo proprietario) -->
-	{#if data.space.owner_id === data.userId}
-		<section class="rounded-box bg-base-100 p-6 shadow-sm">
-			<h2 class="mb-4 text-lg font-semibold">Membri</h2>
-
-			{#if data.members.length === 0}
-				<p class="text-sm text-base-content/60">Nessun membro trovato.</p>
-			{:else}
-				<ul class="divide-y divide-base-200">
-					{#each data.members as member (member.id)}
-						<li class="flex items-center justify-between py-2">
-							<span class="text-sm">{member.email}</span>
-							<div class="flex items-center gap-2">
-								{#if member.id === data.userId}
-									<span class="badge badge-sm badge-primary">tu</span>
-								{:else}
-									<form method="POST" action="?/removeMember">
-										<input type="hidden" name="userId" value={member.id} />
-										<button class="btn btn-ghost btn-xs text-error" type="submit">Rimuovi</button>
-									</form>
-								{/if}
-							</div>
-						</li>
-					{/each}
-				</ul>
-			{/if}
-		</section>
-
-		<!-- Link di invito (solo proprietario) -->
-		<section class="rounded-box bg-base-100 p-6 shadow-sm">
-			<h2 class="mb-4 text-lg font-semibold">Link di invito</h2>
-
-			{#if data.activeInvite}
-				<p class="mb-3 text-sm text-base-content/60">
-					Scade il {new Date(data.activeInvite.expires_at).toLocaleDateString('it-IT')}. Chiunque
-					abbia il link e si logga verrà aggiunto a questo spazio.
-				</p>
-				<div class="mb-4 flex gap-2">
-					<input
-						class="input input-bordered input-sm w-full font-mono text-xs"
-						type="text"
-						readonly
-						value={inviteUrl}
-					/>
-					<button class="btn btn-sm btn-outline shrink-0" type="button" onclick={copyLink}>
-						{copied ? '✓ Copiato' : 'Copia'}
-					</button>
-				</div>
-				<div class="flex flex-wrap gap-2">
-					<form method="POST" action="?/generateInvite">
-						<button class="btn btn-sm btn-ghost" type="submit">Rigenera</button>
-					</form>
-					<form method="POST" action="?/revokeInvite">
-						<button class="btn btn-sm btn-ghost text-error" type="submit">Revoca</button>
-					</form>
-				</div>
-			{:else}
-				<p class="mb-4 text-sm text-base-content/60">Nessun link di invito attivo.</p>
-				<form method="POST" action="?/generateInvite">
-					<button class="btn btn-primary btn-sm" type="submit">Genera link di invito</button>
-				</form>
-			{/if}
-		</section>
-	{/if}
 </div>
