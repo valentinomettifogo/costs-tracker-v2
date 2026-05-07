@@ -75,11 +75,11 @@
 		<div class="navbar-center">
 			<ul class="menu menu-horizontal gap-2 px-1">
 				<li><a href="/">Home</a></li>
-				<li><a href="/statistic">Statistic</a></li>
+				<li class="disabled"><a class="pointer-events-none opacity-40" tabindex="-1" aria-disabled="true">Statistic</a></li>
 				{#if user}
 					<li><a href="/spaces">Spaces</a></li>
 				{/if}
-				<li><a href="/about">About</a></li>
+				<li class="disabled"><a class="pointer-events-none opacity-40" tabindex="-1" aria-disabled="true">About</a></li>
 				{#if isAdmin}
 					<li>
 						<a
