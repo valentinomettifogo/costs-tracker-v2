@@ -38,12 +38,12 @@
 				</a>
 			</li>
 			<li>
-				<a
-					class={`flex h-full items-center justify-center ${currentPath === "/statistic" ? "bg-primary text-primary-content" : "text-base-content/80"}`}
-					href="/statistic"
+				<span
+					class="flex h-full items-center justify-center pointer-events-none opacity-40"
+					aria-disabled="true"
 				>
 					Statistic
-				</a>
+				</span>
 			</li>
 			<li>
 				{#if data.user}
