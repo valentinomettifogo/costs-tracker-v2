@@ -109,7 +109,7 @@
 							{#each data.movements as m (m.id)}
 								{@const cat = m.costs_categories}
 								<tr class="hover">
-									<td class="text-right font-mono font-semibold {amountClass(m.amount)}">
+									<td class="text-right font-semibold {amountClass(m.amount)}">
 										{formatAmount(m.amount)}
 									</td>
 									<td class="whitespace-nowrap text-sm">{formatDate(m.date)}</td>
