@@ -136,7 +136,7 @@ export const actions: Actions = {
 		if (!user) throw redirect(303, '/login');
 
 		const activeSpaceId = (user.user_metadata?.active_space_id as string | undefined) ?? null;
-		if (!activeSpaceId) return fail(400, { movementError: 'Nessuno spazio attivo.' });
+		if (!activeSpaceId) return fail(400, { movementError: 'No active space.' });
 
 		const form = await request.formData();
 		const amountRaw = String(form.get('amount') ?? '');
@@ -145,14 +145,18 @@ export const actions: Actions = {
 		const category_id = String(form.get('category_id') ?? '').trim() || null;
 		const expense_user_id = String(form.get('expense_user_id') ?? '').trim() || null;
 		const tagsRaw = String(form.get('tags') ?? '').trim();
-		const tags = tagsRaw ? tagsRaw.split(',').map((t) => t.trim()).filter(Boolean) : null;
+		const recurring = form.get('recurring') === 'on';
+		const inputTags = tagsRaw ? tagsRaw.split(',').map((t) => t.trim()).filter(Boolean) : [];
+		const tagsSet = new Set(inputTags);
+		if (recurring) tagsSet.add('recurring');
+		const tags = tagsSet.size > 0 ? Array.from(tagsSet) : null;
 
 		const amount = parseFloat(amountRaw);
 		if (isNaN(amount) || amount <= 0 || !date)
-			return fail(400, { movementError: 'Importo (positivo) e data obbligatori.' });
+			return fail(400, { movementError: 'Amount (positive) and date are required.' });
 
 		const admin = getAdminClient();
-		if (!admin) return fail(500, { movementError: 'Servizio non disponibile.' });
+		if (!admin) return fail(500, { movementError: 'Service unavailable.' });
 
 		// Determine sign from category type
 		let isIncome = false;
@@ -168,20 +172,39 @@ export const actions: Actions = {
 		const sign = (isIncome ? 1 : -1) * (invert_sign ? -1 : 1);
 		const finalAmount = Math.abs(amount) * sign;
 
-		const { error: err } = await admin.from('costs_movements').insert({
+		const [yearRaw, monthRaw, dayRaw] = date.split('-');
+		const year = Number(yearRaw);
+		const month = Number(monthRaw);
+		const day = Number(dayRaw);
+		if (!year || !month || !day) {
+			return fail(400, { movementError: 'Invalid date.' });
+		}
+
+		const dates = recurring
+			? Array.from({ length: 12 - month + 1 }, (_, i) => {
+					const nextMonth = month + i;
+					const lastDayInMonth = new Date(Date.UTC(year, nextMonth, 0)).getUTCDate();
+					const recurringDay = Math.min(day, lastDayInMonth);
+					return new Date(Date.UTC(year, nextMonth - 1, recurringDay)).toISOString().slice(0, 10);
+				})
+			: [date];
+
+		const rows = dates.map((movementDate) => ({
 			amount: finalAmount,
-			date,
+			date: movementDate,
 			description,
 			category_id,
 			expense_user_id,
 			tags,
 			space_id: activeSpaceId,
 			user_id: user.id
-		});
+		}));
+
+		const { error: err } = await admin.from('costs_movements').insert(rows);
 
 		if (err) return fail(500, { movementError: err.message });
 
-		return { movementSuccess: true };
+		return { movementSuccess: true, movementAction: 'create' };
 	},
 
 	updateMovement: async ({ request, locals }) => {
@@ -189,7 +212,7 @@ export const actions: Actions = {
 		if (!user) throw redirect(303, '/login');
 
 		const activeSpaceId = (user.user_metadata?.active_space_id as string | undefined) ?? null;
-		if (!activeSpaceId) return fail(400, { movementError: 'Nessuno spazio attivo.' });
+		if (!activeSpaceId) return fail(400, { movementError: 'No active space.' });
 
 		const form = await request.formData();
 		const id = String(form.get('id') ?? '').trim();
@@ -203,10 +226,10 @@ export const actions: Actions = {
 
 		const amount = parseFloat(amountRaw);
 		if (!id || isNaN(amount) || amount <= 0 || !date)
-			return fail(400, { movementError: 'Dati non validi.' });
+			return fail(400, { movementError: 'Invalid data.' });
 
 		const admin = getAdminClient();
-		if (!admin) return fail(500, { movementError: 'Servizio non disponibile.' });
+		if (!admin) return fail(500, { movementError: 'Service unavailable.' });
 
 		// Determine sign from category type
 		let isIncome = false;
@@ -230,7 +253,7 @@ export const actions: Actions = {
 
 		if (err) return fail(500, { movementError: err.message });
 
-		return { movementSuccess: true };
+		return { movementSuccess: true, movementAction: 'update' };
 	},
 
 	deleteMovement: async ({ request, locals }) => {
@@ -238,17 +261,23 @@ export const actions: Actions = {
 		if (!user) throw redirect(303, '/login');
 
 		const activeSpaceId = (user.user_metadata?.active_space_id as string | undefined) ?? null;
-		if (!activeSpaceId) return fail(400, { movementError: 'Nessuno spazio attivo.' });
+		if (!activeSpaceId) return fail(400, { movementError: 'No active space.' });
 
 		const form = await request.formData();
 		const id = String(form.get('id') ?? '').trim();
-		if (!id) return fail(400, { movementError: 'ID non valido.' });
+		if (!id) return fail(400, { movementError: 'Invalid ID.' });
 
 		const admin = getAdminClient();
-		if (!admin) return fail(500, { movementError: 'Servizio non disponibile.' });
+		if (!admin) return fail(500, { movementError: 'Service unavailable.' });
 
-		await admin.from('costs_movements').delete().eq('id', id).eq('space_id', activeSpaceId);
+		const { error: err } = await admin
+			.from('costs_movements')
+			.delete()
+			.eq('id', id)
+			.eq('space_id', activeSpaceId);
 
-		return { movementSuccess: true };
+		if (err) return fail(500, { movementError: err.message });
+
+		return { movementSuccess: true, movementAction: 'delete' };
 	}
 };

@@ -1,10 +1,16 @@
 <script lang="ts">
 	import type { MovementRow } from './+page.server';
 	import { Pencil, Trash2 } from 'lucide-svelte';
+	import ConfirmModal from '$lib/components/ConfirmModal.svelte';
+	import SuccessModal from '$lib/components/SuccessModal.svelte';
 
 	let { data, form } = $props();
 	let showMovementForm = $state(false);
 	let editingMovement = $state<MovementRow | null>(null);
+	let showCreateSuccessModal = $state(false);
+	let showDeleteConfirmModal = $state(false);
+	let pendingDeleteForm = $state<HTMLFormElement | null>(null);
+	let pendingDeleteLabel = $state('');
 
 	const typeBadgeClass: Record<string, string> = {
 		needs: 'badge-warning',
@@ -34,6 +40,7 @@
 
 	const todayISO = new Date().toISOString().slice(0, 10);
 	const movementError = $derived((form as { movementError?: string } | undefined)?.movementError);
+	const movementAction = $derived((form as { movementAction?: string } | undefined)?.movementAction);
 	const hasMore = $derived(data.totalMovements > data.limit);
 
 	const groupedCategories = $derived(
@@ -53,6 +60,9 @@
 		if ((form as { movementSuccess?: boolean } | undefined)?.movementSuccess) {
 			showMovementForm = false;
 			editingMovement = null;
+			if (movementAction === 'create') {
+				showCreateSuccessModal = true;
+			}
 		}
 	});
 
@@ -66,12 +76,36 @@
 		showMovementForm = true;
 	}
 
+	function askDeleteConfirmation(m: MovementRow, event: MouseEvent) {
+		const trigger = event.currentTarget as HTMLButtonElement | null;
+		pendingDeleteForm = trigger?.form ?? null;
+		pendingDeleteLabel = `${formatAmount(m.amount)} del ${formatDate(m.date)}`;
+		showDeleteConfirmModal = true;
+	}
+
+	function cancelDeleteConfirmation() {
+		showDeleteConfirmModal = false;
+		pendingDeleteForm = null;
+		pendingDeleteLabel = '';
+	}
+
+	function confirmDelete() {
+		if (!pendingDeleteForm) return;
+		const formEl = pendingDeleteForm;
+		cancelDeleteConfirmation();
+		formEl.requestSubmit();
+	}
+
 	// For edit: determine if current stored amount is inverted relative to expected sign
 	function editInvertSign(m: MovementRow): boolean {
 		const catType = m.costs_categories?.type;
 		const expectedPositive = catType === 'income';
 		const actualPositive = m.amount >= 0;
 		return expectedPositive !== actualPositive;
+	}
+
+	function closeCreateSuccessModal() {
+		showCreateSuccessModal = false;
 	}
 </script>
 
@@ -141,7 +175,12 @@
 											</button>
 											<form method="POST" action="?/deleteMovement">
 												<input type="hidden" name="id" value={m.id} />
-												<button class="btn btn-ghost btn-xs text-error" type="submit" aria-label="Delete">
+												<button
+													class="btn btn-ghost btn-xs text-error"
+													type="button"
+													onclick={(event) => askDeleteConfirmation(m, event)}
+													aria-label="Delete"
+												>
 													<Trash2 size={14} />
 												</button>
 											</form>
@@ -182,7 +221,12 @@
 									</button>
 									<form method="POST" action="?/deleteMovement">
 										<input type="hidden" name="id" value={m.id} />
-										<button class="btn btn-ghost btn-sm text-error" type="submit" aria-label="Delete">
+										<button
+											class="btn btn-ghost btn-sm text-error"
+											type="button"
+											onclick={(event) => askDeleteConfirmation(m, event)}
+											aria-label="Delete"
+										>
 											<Trash2 size={16} />
 										</button>
 									</form>
@@ -326,6 +370,16 @@
 							/>
 						</label>
 
+						{#if !editingMovement}
+							<label class="form-control flex-row items-center gap-3 cursor-pointer">
+								<input type="checkbox" name="recurring" class="checkbox checkbox-sm" />
+								<span class="label-text">
+									Recurring
+									<span class="text-xs text-base-content/50">(create monthly until end of year)</span>
+								</span>
+							</label>
+						{/if}
+
 						<div class="modal-action">
 							<button
 								type="button"
@@ -341,4 +395,22 @@
 			</div>
 		</dialog>
 	{/if}
+
+	<ConfirmModal
+		open={showDeleteConfirmModal}
+		title="Confirm deletion"
+		message={`Do you really want to delete transaction ${pendingDeleteLabel}?`}
+		confirmLabel="Yes, delete"
+		cancelLabel="Cancel"
+		onConfirm={confirmDelete}
+		onCancel={cancelDeleteConfirmation}
+	/>
+
+	<SuccessModal
+		open={showCreateSuccessModal}
+		title="Transaction created"
+		message="The new transaction was saved successfully."
+		buttonLabel="Ok"
+		onClose={closeCreateSuccessModal}
+	/>
 {/if}
