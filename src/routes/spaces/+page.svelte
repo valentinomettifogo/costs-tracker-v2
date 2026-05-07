@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { Star } from 'lucide-svelte';
 	let { data, form } = $props();
 	let showForm = $state(false);
 </script>
@@ -66,11 +67,16 @@
 							<form method="POST" action="?/setActive">
 								<input type="hidden" name="spaceId" value={space.id} />
 								<button
-									class="btn btn-ghost btn-xs text-xl leading-none"
+									class="btn btn-ghost btn-xs"
 									type="submit"
 									title={space.id === data.activeSpaceId ? 'Active space' : 'Set as active'}
 								>
-									{space.id === data.activeSpaceId ? '⭐' : '☆'}
+									<Star
+										size={18}
+										class={space.id === data.activeSpaceId
+											? 'fill-yellow-400 stroke-yellow-400'
+											: 'stroke-base-content/40 fill-none'}
+									/>
 								</button>
 							</form>
 						</div>
