@@ -25,9 +25,7 @@
 		class="fixed inset-x-0 bottom-0 z-40 border-t border-base-300 bg-base-100 md:hidden"
 	>
 		<ul
-			class="grid h-16 items-stretch text-xs font-medium {data.user
-				? 'grid-cols-4'
-				: 'grid-cols-4'}"
+			class="grid h-16 items-stretch text-xs font-medium {data.isAdmin ? 'grid-cols-4' : 'grid-cols-3'}"
 		>
 			<li>
 				<a
@@ -55,30 +53,6 @@
 					</a>
 				{:else}
 					<a
-						class={`flex h-full items-center justify-center ${currentPath === "/about" ? "bg-primary text-primary-content" : "text-base-content/80"}`}
-						href="/about"
-					>
-						About
-					</a>
-				{/if}
-			</li>
-			<li>
-				{#if data.isAdmin}
-					<a
-						class={`flex h-full items-center justify-center ${currentPath === "/admin" ? "bg-accent text-accent-content" : "text-accent"}`}
-						href="/admin"
-					>
-						Admin
-					</a>
-				{:else if data.user}
-					<a
-						class={`flex h-full items-center justify-center ${currentPath === "/about" ? "bg-primary text-primary-content" : "text-base-content/80"}`}
-						href="/about"
-					>
-						About
-					</a>
-				{:else}
-					<a
 						class={`flex h-full items-center justify-center ${currentPath === "/login" ? "bg-primary text-primary-content" : "text-base-content/80"}`}
 						href={`/login?redirectTo=${encodeURIComponent(data.currentPath)}`}
 					>
@@ -86,6 +60,16 @@
 					</a>
 				{/if}
 			</li>
+			{#if data.isAdmin}
+				<li>
+					<a
+						class={`flex h-full items-center justify-center ${currentPath === "/admin" ? "bg-accent text-accent-content" : "text-accent"}`}
+						href="/admin"
+					>
+						Admin
+					</a>
+				</li>
+			{/if}
 		</ul>
 	</nav>
 </div>

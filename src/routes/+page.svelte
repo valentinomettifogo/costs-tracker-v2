@@ -151,8 +151,8 @@
 
 		<!-- Transactions -->
 		<section class="rounded-box bg-base-100 p-2 shadow-sm">
-			<details class="collapse collapse-arrow mb-3 rounded-box border border-base-200">
-				<summary class="collapse-title min-h-0 py-3 text-sm font-medium">Filters</summary>
+			<details class="collapse collapse-arrow mb-3 rounded-box border border-base-300 bg-base-200/40">
+				<summary class="collapse-title min-h-0 py-3 text-sm font-semibold text-base-content">Filters</summary>
 				<div class="collapse-content pt-1">
 					{#if data.filters.tag}
 						<div class="mb-2 flex items-center gap-2">

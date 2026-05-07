@@ -79,7 +79,6 @@
 				{#if user}
 					<li><a href="/spaces">Spaces</a></li>
 				{/if}
-				<li class="disabled"><a class="pointer-events-none opacity-40" tabindex="-1" aria-disabled="true">About</a></li>
 				{#if isAdmin}
 					<li>
 						<a
