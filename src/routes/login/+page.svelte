@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { enhance } from '$app/forms';
+	import { goto } from '$app/navigation';
 	import { supabase } from '$lib/supabaseClient';
 
 	let { data, form } = $props();
@@ -26,7 +28,20 @@
 			<div class="alert alert-error text-sm">{form.error}</div>
 		{/if}
 
-		<form method="POST" action="?/email" class="space-y-5">
+		<form
+			method="POST"
+			action="?/email"
+			use:enhance={() => {
+				return async ({ result, update }) => {
+					if (result.type === 'redirect') {
+						await goto(result.location, { invalidateAll: true });
+					} else {
+						await update();
+					}
+				};
+			}}
+			class="space-y-5"
+		>
 			<input type="hidden" name="redirectTo" value={data.redirectTo} />
 
 			<label class="form-control w-full gap-2">
