@@ -19,3 +19,8 @@
 
 - [ ] come vanno gestiti i cookie per l'europa?
 - [ ] non c'è il tasto "registra" per il login via email
+
+
+
+
+Unica cosa manuale rimanente: aggiungere le icone PNG (favicon.ico, icon-192.png, icon-512.png, apple-touch-icon.png) nella cartella static. Puoi generarle da realfavicongenerator.net partendo dal tuo SVG.

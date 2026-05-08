@@ -15,6 +15,12 @@
 	}
 </script>
 
+<svelte:head>
+	<title>Sign in – Budget</title>
+	<meta name="description" content="Sign in to Budget to track your shared expenses." />
+	<meta name="robots" content="noindex" />
+</svelte:head>
+
 <div class="-mx-3 space-y-2 md:mx-0">
 	<section class="mx-auto max-w-md space-y-6 rounded-box bg-base-100 p-6 shadow-sm">
 		<div class="space-y-2 text-center">

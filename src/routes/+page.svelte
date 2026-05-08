@@ -3,6 +3,7 @@
 	import { Pencil, Trash2 } from 'lucide-svelte';
 	import ConfirmModal from '$lib/components/ConfirmModal.svelte';
 	import SuccessModal from '$lib/components/SuccessModal.svelte';
+	import LandingPage from '$lib/components/LandingPage.svelte';
 
 	let { data, form } = $props();
 	let showMovementForm = $state(false);
@@ -138,7 +139,13 @@
 	}
 </script>
 
-{#if !data.activeSpace}
+<svelte:head>
+	<title>Budget – Track shared expenses</title>
+</svelte:head>
+
+{#if !data.user}
+	<LandingPage />
+{:else if !data.activeSpace}
 	<section class="rounded-box bg-base-100 p-10 text-center shadow-sm">
 		<p class="mb-4 text-base-content/60">No active space. Select one from the list.</p>
 		<a href="/spaces" class="btn btn-primary btn-sm">Go to spaces</a>

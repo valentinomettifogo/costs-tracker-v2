@@ -1,4 +1,7 @@
 <script lang="ts">
+	import { enhance } from '$app/forms';
+	import { invalidateAll, goto } from '$app/navigation';
+
 	interface Props {
 		user: { email?: string; user_metadata?: Record<string, unknown> } | null;
 		role: string | null;
@@ -7,6 +10,13 @@
 	}
 
 	let { user, role, isAdmin, currentPath }: Props = $props();
+
+	function handleLogout() {
+		return async ({ result }: { result: { type: string; location?: string } }) => {
+			await invalidateAll();
+			goto(result.type === 'redirect' && result.location ? result.location : '/');
+		};
+	}
 
 	const avatarUrl = $derived(user?.user_metadata?.avatar_url as string | undefined);
 	const displayName = $derived(
@@ -51,7 +61,7 @@
 					</li>
 					<li class="divider my-1 h-px bg-base-300"></li>
 					<li>
-						<form method="POST" action="/login?/logout" class="p-0">
+					<form method="POST" action="/login?/logout" use:enhance={handleLogout} class="p-0">
 							<button class="btn btn-ghost btn-sm w-full justify-start text-error" type="submit">
 								Logout
 							</button>
@@ -74,9 +84,9 @@
 
 		<div class="navbar-center">
 			<ul class="menu menu-horizontal gap-2 px-1">
-				<li><a href="/">Home</a></li>
-				<li class="disabled"><a class="pointer-events-none opacity-40" tabindex="-1" aria-disabled="true">Statistic</a></li>
 				{#if user}
+					<li><a href="/">Home</a></li>
+					<li class="disabled"><a class="pointer-events-none opacity-40" tabindex="-1" aria-disabled="true">Statistic</a></li>
 					<li><a href="/spaces">Spaces</a></li>
 				{/if}
 				{#if isAdmin}
@@ -115,7 +125,7 @@
 						</li>
 						<li class="divider my-1 h-px bg-base-300"></li>
 						<li>
-							<form method="POST" action="/login?/logout" class="p-0">
+							<form method="POST" action="/login?/logout" use:enhance={handleLogout} class="p-0">
 								<button class="btn btn-ghost btn-sm w-full justify-start text-error" type="submit">
 									Logout
 								</button>

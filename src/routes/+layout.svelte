@@ -7,7 +7,12 @@
 	const currentPath = $derived(data.currentPath.split("?")[0]);
 </script>
 
-<svelte:head><link rel="icon" href={favicon} /></svelte:head>
+<svelte:head>
+	<link rel="icon" href={favicon} />
+	{#if data.user}
+		<meta name="robots" content="noindex, nofollow" />
+	{/if}
+</svelte:head>
 
 <div class="min-h-screen bg-base-200 text-base-content">
 	<Navbar
@@ -24,6 +29,7 @@
 	<nav
 		class="fixed inset-x-0 bottom-0 z-40 border-t border-base-300 bg-base-100 md:hidden"
 	>
+		{#if data.user}
 		<ul
 			class="grid h-16 items-stretch text-xs font-medium {data.isAdmin ? 'grid-cols-4' : 'grid-cols-3'}"
 		>
@@ -44,21 +50,12 @@
 				</span>
 			</li>
 			<li>
-				{#if data.user}
-					<a
-						class={`flex h-full items-center justify-center ${currentPath.startsWith("/spaces") ? "bg-primary text-primary-content" : "text-base-content/80"}`}
-						href="/spaces"
-					>
-						Spaces
-					</a>
-				{:else}
-					<a
-						class={`flex h-full items-center justify-center ${currentPath === "/login" ? "bg-primary text-primary-content" : "text-base-content/80"}`}
-						href={`/login?redirectTo=${encodeURIComponent(data.currentPath)}`}
-					>
-						Login
-					</a>
-				{/if}
+				<a
+					class={`flex h-full items-center justify-center ${currentPath.startsWith("/spaces") ? "bg-primary text-primary-content" : "text-base-content/80"}`}
+					href="/spaces"
+				>
+					Spaces
+				</a>
 			</li>
 			{#if data.isAdmin}
 				<li>
@@ -71,5 +68,6 @@
 				</li>
 			{/if}
 		</ul>
+		{/if}
 	</nav>
 </div>

@@ -37,9 +37,6 @@ export type MovementRow = {
 
 export const load: PageServerLoad = async ({ locals, url }) => {
 	const { user } = await locals.safeGetSession();
-	if (!user) throw redirect(303, '/login');
-
-	const activeSpaceId = (user.user_metadata?.active_space_id as string | undefined) ?? null;
 
 	const empty = {
 		activeSpace: null as Space | null,
@@ -61,6 +58,9 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		filterQueryString: ''
 	};
 
+	if (!user) return empty;
+
+	const activeSpaceId = (user.user_metadata?.active_space_id as string | undefined) ?? null;
 	if (!activeSpaceId) return empty;
 
 	// Verifica accesso
