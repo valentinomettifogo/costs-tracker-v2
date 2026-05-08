@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr';
 import type { Handle } from '@sveltejs/kit';
+import { dev } from '$app/environment';
 
 import { PUBLIC_SUPABASE_PUBLISHABLE_KEY, PUBLIC_SUPABASE_URL } from '$env/static/public';
 
@@ -15,7 +16,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 					event.cookies.set(name, value, {
 						...options,
 						path: '/',
-						secure: event.url.protocol === 'https:'
+						secure: !dev
 					});
 				}
 			}
@@ -25,6 +26,14 @@ export const handle: Handle = async ({ event, resolve }) => {
 
 	event.locals.safeGetSession = async () => {
 		const {
+			data: { session }
+		} = await event.locals.supabase.auth.getSession();
+
+		if (!session) {
+			return { session: null, user: null };
+		}
+
+		const {
 			data: { user },
 			error
 		} = await event.locals.supabase.auth.getUser();
@@ -33,7 +42,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 			return { session: null, user: null };
 		}
 
-		return { session: null, user };
+		return { session, user };
 	};
 
 	return resolve(event, {
