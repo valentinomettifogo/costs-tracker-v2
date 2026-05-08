@@ -19,7 +19,8 @@
 		savings: 'badge-primary'
 	};
 
-	function amountClass(amount: number): string {
+	function amountClass(amount: number, type?: string | null): string {
+		if (type === 'savings') return 'text-warning';
 		return amount >= 0 ? 'text-success' : 'text-error';
 	}
 
@@ -247,7 +248,7 @@
 							{#each data.movements as m (m.id)}
 								{@const cat = m.costs_categories}
 								<tr class="hover">
-									<td class="text-right font-semibold {amountClass(m.amount)}">
+									<td class="text-right font-semibold {amountClass(m.amount, m.costs_categories?.type)}">
 										{formatAmount(m.amount)}
 									</td>
 									<td class="whitespace-nowrap text-sm">{formatDate(m.date)}</td>
@@ -303,7 +304,7 @@
 						<li class="rounded-lg border border-base-200 px-3 py-2">
 							<!-- Header: amount+category+type -->
 							<div class="flex min-w-0 flex-wrap items-center gap-1.5">
-								<span class="text-xl font-semibold {amountClass(m.amount)}">{formatAmount(m.amount)}</span>
+								<span class="text-xl font-semibold {amountClass(m.amount, m.costs_categories?.type)}">{formatAmount(m.amount)}</span>
 								<span class="text-base font-medium">{cat?.name ?? '—'}</span>
 								{#if cat?.type}<span class="badge badge-sm {typeBadgeClass[cat.type] ?? 'badge-ghost'}">{cat.type}</span>{/if}
 							</div>
