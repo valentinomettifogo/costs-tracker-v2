@@ -121,10 +121,9 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 
 	const yearRaw = url.searchParams.get('year')?.trim() ?? '';
 	const monthRaw = url.searchParams.get('month')?.trim() ?? '';
-	const ytdRaw = url.searchParams.get('ytd')?.trim().toLowerCase() ?? '';
 	const hasYearParam = url.searchParams.has('year');
 	const hasMonthParam = url.searchParams.has('month');
-	const hasYtdParam = url.searchParams.has('ytd');
+	const ytd = monthRaw === 'ytd';
 	const categoryId = url.searchParams.get('category')?.trim() || null;
 	const query = (url.searchParams.get('q')?.trim().toLowerCase() ?? '').slice(0, 100);
 	const tag = (url.searchParams.get('tag')?.trim() ?? '').slice(0, 40) || null;
@@ -136,8 +135,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	const parsedYear = Number.parseInt(yearRaw, 10);
 	const parsedMonth = Number.parseInt(monthRaw, 10);
 	let year = Number.isInteger(parsedYear) && parsedYear >= 2000 && parsedYear <= 2100 ? parsedYear : null;
-	const month = Number.isInteger(parsedMonth) && parsedMonth >= 1 && parsedMonth <= 12 ? parsedMonth : null;
-	const ytd = ['1', 'true', 'on', 'yes'].includes(ytdRaw);
+	const month = ytd ? null : (Number.isInteger(parsedMonth) && parsedMonth >= 1 && parsedMonth <= 12 ? parsedMonth : null);
 
 	const today = new Date();
 	const todayIso = today.toISOString().slice(0, 10);
@@ -174,7 +172,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	}
 
 	const availableYears = Array.from(yearSet).sort((a, b) => b - a);
-	const useCurrentPeriodDefaults = !hasYearParam && !hasMonthParam && !hasYtdParam;
+	const useCurrentPeriodDefaults = !hasYearParam && !hasMonthParam;
 	if (useCurrentPeriodDefaults) {
 		year = availableYears.includes(currentYear) ? currentYear : year;
 	}
@@ -195,8 +193,9 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	let toDate: string | null = null;
 
 	if (ytd) {
-		fromDate = `${currentYear}-01-01`;
-		toDate = todayIso;
+		const ytdYear = year ?? currentYear;
+		fromDate = `${ytdYear}-01-01`;
+		toDate = ytdYear === currentYear ? todayIso : `${ytdYear}-12-31`;
 	} else if (year && monthForFiltering) {
 		const monthPadded = String(monthForFiltering).padStart(2, '0');
 		const lastDay = new Date(Date.UTC(year, monthForFiltering, 0)).getUTCDate();

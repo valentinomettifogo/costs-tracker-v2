@@ -174,7 +174,7 @@
 						{/if}
 						<label class="form-control">
 							<span class="label-text text-xs">Year</span>
-							<select class="select select-bordered w-full" name="year" disabled={data.filters.ytd}>
+							<select class="select select-bordered w-full" name="year">
 								<option value="">All</option>
 								{#each data.availableYears as y}
 									<option value={y} selected={data.filters.year === y}>{y}</option>
@@ -187,9 +187,10 @@
 							<select
 								class="select select-bordered w-full"
 								name="month"
-								disabled={data.filters.ytd || !data.filters.year}
+								disabled={!data.filters.year}
 							>
 								<option value="">All</option>
+								<option value="ytd" selected={data.filters.ytd}>YTD</option>
 								{#each monthOptions as m}
 									<option value={m.value} selected={data.filters.month === m.value}>{m.label}</option>
 								{/each}
@@ -229,16 +230,6 @@
 						</label>
 
 						<div class="flex items-end gap-2">
-							<label class="label cursor-pointer gap-2 pb-1">
-								<input
-									type="checkbox"
-									name="ytd"
-									value="1"
-									class="checkbox checkbox-sm"
-									checked={data.filters.ytd}
-								/>
-								<span class="label-text text-xs">YTD</span>
-							</label>
 							<button type="submit" class="btn btn-primary">Apply</button>
 							<a href="/" class="btn btn-ghost">Reset</a>
 						</div>
