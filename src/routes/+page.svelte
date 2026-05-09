@@ -14,22 +14,10 @@
 	let pendingDeleteForm = $state<HTMLFormElement | null>(null);
 	let pendingDeleteLabel = $state('');
 	let selectedCategoryId = $state('');
-	let categoryDropdownOpen = $state(false);
 
 	$effect(() => {
 		selectedCategoryId = editingMovement?.category_id ?? '';
 	});
-
-	const selectedCategoryLabel = $derived(
-		selectedCategoryId
-			? (data.categories.find((c) => c.id === selectedCategoryId)?.name ?? '— none —')
-			: '— none —'
-	);
-
-	function selectCategory(id: string) {
-		selectedCategoryId = id;
-		categoryDropdownOpen = false;
-	}
 
 	const typeBadgeClass: Record<string, string> = {
 		needs: 'badge-warning',
@@ -317,8 +305,8 @@
 				class="modal-backdrop"
 				role="button"
 				tabindex="-1"
-				onclick={() => { showMovementForm = false; editingMovement = null; categoryDropdownOpen = false; }}
-				onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { showMovementForm = false; editingMovement = null; categoryDropdownOpen = false; } }}
+				onclick={() => { showMovementForm = false; editingMovement = null; }}
+				onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { showMovementForm = false; editingMovement = null; } }}
 			></div>
 			<div class="modal-box">
 				<h3 class="mb-4 text-lg font-bold">{editingMovement ? 'Edit transaction' : 'New transaction'}</h3>
@@ -377,30 +365,20 @@
 
 						<label class="form-control">
 							<span class="label-text mb-1 block">Category</span>
-							<input type="hidden" name="category_id" value={selectedCategoryId} />
-								<div class="relative w-full">
-									{#if categoryDropdownOpen}
-										<div class="fixed inset-0 z-10" role="presentation" onclick={() => (categoryDropdownOpen = false)}></div>
-									{/if}
-									<button
-										type="button"
-										class="select select-bordered flex w-full items-center text-left"
-										onclick={() => (categoryDropdownOpen = !categoryDropdownOpen)}
-									>{selectedCategoryLabel}</button>
-									{#if categoryDropdownOpen}
-										<div class="absolute left-0 top-full z-20 mt-1 max-h-52 w-full overflow-y-auto rounded-box border border-base-300 bg-base-100 shadow">
-											<button type="button" class="w-full px-3 py-2 text-left text-sm hover:bg-base-200 {selectedCategoryId === '' ? 'bg-base-200 font-medium' : ''}" onclick={() => selectCategory('')}>— none —</button>
-											{#each groupedCategories as group}
-												<div class="flex items-center gap-2 border-t border-base-200 bg-base-200/60 px-3 py-1.5">
-													<span class="badge badge-sm {typeBadgeClass[group.type] ?? 'badge-ghost'}">{group.type.charAt(0).toUpperCase() + group.type.slice(1)}</span>
-												</div>
-												{#each group.cats as cat}
-													<button type="button" class="w-full px-3 py-2 text-left text-sm hover:bg-base-200 {selectedCategoryId === cat.id ? 'bg-base-300 font-medium' : ''}" onclick={() => selectCategory(cat.id)}>{cat.name}</button>
-												{/each}
-											{/each}
-										</div>
-									{/if}
-								</div>
+							<select
+								class="select select-bordered w-full"
+								name="category_id"
+								bind:value={selectedCategoryId}
+							>
+								<option value="">— none —</option>
+								{#each groupedCategories as group}
+									<optgroup label={group.type.charAt(0).toUpperCase() + group.type.slice(1)}>
+										{#each group.cats as cat}
+											<option value={cat.id}>{cat.name}</option>
+										{/each}
+									</optgroup>
+								{/each}
+							</select>
 						</label>
 
 						<label class="form-control">
