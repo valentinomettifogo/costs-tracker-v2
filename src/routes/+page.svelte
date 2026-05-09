@@ -168,7 +168,7 @@
 							<a href={tagFilterHref(data.filters.tag)} class="badge badge-primary badge-sm">{data.filters.tag} ×</a>
 						</div>
 					{/if}
-					<form method="GET" class="grid grid-cols-1 gap-2 md:grid-cols-5">
+					<form method="GET" class="grid grid-cols-1 gap-2 md:grid-cols-6">
 						{#if data.filters.tag}
 							<input type="hidden" name="tag" value={data.filters.tag} />
 						{/if}
@@ -203,6 +203,17 @@
 								{#each data.categories as cat}
 									<option value={cat.id} selected={data.filters.categoryId === cat.id}>{cat.name}</option>
 								{/each}
+							</select>
+						</label>
+
+						<label class="form-control">
+							<span class="label-text text-xs">Type</span>
+							<select class="select select-bordered w-full" name="type">
+								<option value="">All</option>
+								<option value="needs" selected={data.filters.type === 'needs'}>Needs</option>
+								<option value="wants" selected={data.filters.type === 'wants'}>Wants</option>
+								<option value="income" selected={data.filters.type === 'income'}>Income</option>
+								<option value="savings" selected={data.filters.type === 'savings'}>Savings</option>
 							</select>
 						</label>
 
@@ -285,7 +296,7 @@
 											<button class="btn btn-ghost btn-xs" onclick={() => openEdit(m)} aria-label="Edit">
 												<Pencil size={14} />
 											</button>
-											<form method="POST" action="?/deleteMovement">
+										<form method="POST" action={`?/deleteMovement${data.filterQueryString ? '&' + data.filterQueryString : ''}`}>
 												<input type="hidden" name="id" value={m.id} />
 												<button
 													class="btn btn-ghost btn-xs text-error"
@@ -338,7 +349,7 @@
 									<button class="btn btn-ghost btn-sm" onclick={() => openEdit(m)} aria-label="Edit">
 										<Pencil size={16} />
 									</button>
-									<form method="POST" action="?/deleteMovement">
+								<form method="POST" action={`?/deleteMovement${data.filterQueryString ? '&' + data.filterQueryString : ''}`}>
 										<input type="hidden" name="id" value={m.id} />
 										<button
 											class="btn btn-ghost btn-sm text-error"
@@ -395,7 +406,9 @@
 				{#key editingMovement?.id ?? 'new'}
 						<form
 						method="POST"
-						action={editingMovement ? '?/updateMovement' : '?/createMovement'}
+						action={editingMovement
+							? `?/updateMovement${data.filterQueryString ? '&' + data.filterQueryString : ''}`
+							: `?/createMovement${data.filterQueryString ? '&' + data.filterQueryString : ''}`}
 						class="space-y-4"
 					>
 						{#if editingMovement}

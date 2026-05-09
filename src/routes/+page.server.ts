@@ -52,6 +52,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			month: null as number | null,
 			ytd: false,
 			categoryId: null as string | null,
+			type: null as string | null,
 			query: '',
 			tag: null as string | null
 		},
@@ -125,8 +126,12 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	const hasMonthParam = url.searchParams.has('month');
 	const hasYtdParam = url.searchParams.has('ytd');
 	const categoryId = url.searchParams.get('category')?.trim() || null;
-	const query = (url.searchParams.get('q')?.trim() ?? '').slice(0, 100);
+	const query = (url.searchParams.get('q')?.trim().toLowerCase() ?? '').slice(0, 100);
 	const tag = (url.searchParams.get('tag')?.trim() ?? '').slice(0, 40) || null;
+	const VALID_TYPES = ['needs', 'wants', 'income', 'savings'] as const;
+	type CategoryType = typeof VALID_TYPES[number];
+	const typeRaw = url.searchParams.get('type')?.trim().toLowerCase() ?? '';
+	const type: CategoryType | null = (VALID_TYPES as readonly string[]).includes(typeRaw) ? (typeRaw as CategoryType) : null;
 
 	const parsedYear = Number.parseInt(yearRaw, 10);
 	const parsedMonth = Number.parseInt(monthRaw, 10);
@@ -202,10 +207,12 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		toDate = `${year}-12-31`;
 	}
 
+	const categoryRelation = type ? 'costs_categories!inner' : 'costs_categories';
+
 	let movementsQuery = movementsClient
 		.from('costs_movements')
 		.select(
-			'id, amount, date, description, user_id, expense_user_id, tags, category_id, costs_categories(id, name, type)',
+			`id, amount, date, description, user_id, expense_user_id, tags, category_id, ${categoryRelation}(id, name, type)`,
 			{ count: 'exact' }
 		)
 		.eq('space_id', activeSpaceId)
@@ -214,6 +221,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	if (fromDate) movementsQuery = movementsQuery.gte('date', fromDate);
 	if (toDate) movementsQuery = movementsQuery.lte('date', toDate);
 	if (categoryId) movementsQuery = movementsQuery.eq('category_id', categoryId);
+	if (type) movementsQuery = movementsQuery.eq('costs_categories.type', type);
 	if (query) movementsQuery = movementsQuery.ilike('description', `%${query}%`);
 	if (tag) movementsQuery = movementsQuery.contains('tags', [tag]);
 
@@ -237,6 +245,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			month: monthForFiltering,
 			ytd,
 			categoryId,
+			type,
 			query,
 			tag
 		},
