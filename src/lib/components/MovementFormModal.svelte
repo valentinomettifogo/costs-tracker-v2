@@ -55,12 +55,16 @@
 		).map(([type, cats]) => ({ type, cats }))
 	);
 
-	function editInvertSign(m: MovementRow): boolean {
-		const catType = m.costs_categories?.type;
-		const expectedPositive = catType === 'income';
-		const actualPositive = m.amount >= 0;
+	let selectedCategoryType = $derived(
+		categories.find((c) => c.id === selectedCategoryId)?.type ?? editing?.costs_categories?.type ?? null
+	);
+
+	let invertSign = $derived.by(() => {
+		if (!editing) return false;
+		const expectedPositive = selectedCategoryType === 'income';
+		const actualPositive = editing.amount >= 0;
 		return expectedPositive !== actualPositive;
-	}
+	});
 
 	function closeModal() {
 		if (!submitting) onClose();
@@ -133,7 +137,7 @@
 							type="checkbox"
 							name="invert_sign"
 							class="checkbox checkbox-sm"
-							checked={editing ? editInvertSign(editing) : false}
+							checked={invertSign}
 						/>
 						<span class="label-text">Invert sign <span class="text-xs text-base-content/50">(e.g. cashback on a cost)</span></span>
 					</label>

@@ -30,6 +30,10 @@
     );
   });
 
+  // --- IDLE MONEY ---
+  let idleMoney = $derived(totals.income - totals.need - totals.wants - totals.saving);
+  let idlePercent = $derived(totals.income > 0 ? (idleMoney / totals.income) * 100 : 0);
+
   // --- KPI PERCENTAGES ---
   let percentages = $derived({
     need: totals.income > 0 ? ((totals.need / totals.income) * 100).toFixed(1) : '0',
@@ -223,7 +227,12 @@
         <div class="stat bg-base-100 shadow rounded-2xl p-3 md:p-4">
           <div class="stat-title text-xs">Total Income</div>
           <div class="stat-value text-success text-lg md:text-2xl break-all">{formatCurrency(totals.income)}</div>
-          <div class="stat-desc text-xs">Net availability</div>
+          <div class="stat-desc text-xs flex flex-col gap-0.5">
+            <span>Idle: <span class="font-semibold {idleMoney >= 0 ? 'text-success' : 'text-error'}">{formatCurrency(idleMoney)}</span> <span class="opacity-50">({idlePercent.toFixed(1)}%)</span></span>
+          </div>
+          <div class="w-full mt-2 rounded-full bg-base-200 h-2">
+            <div class="h-2 rounded-full transition-all {idleMoney >= 0 ? 'bg-success' : 'bg-error'}" style="width:{Math.min(Math.max(idlePercent, 0), 100)}%"></div>
+          </div>
         </div>
 
         <div class="stat bg-base-100 shadow rounded-2xl p-3 md:p-4">
