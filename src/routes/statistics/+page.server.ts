@@ -114,7 +114,8 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	const yearRaw = url.searchParams.get('year')?.trim() ?? '';
 	const monthRaw = url.searchParams.get('month')?.trim() ?? '';
 	const hasYearParam = url.searchParams.has('year');
-	const ytd = monthRaw === 'ytd';
+	const hasMonthParam = url.searchParams.has('month');
+	const ytd = monthRaw === 'ytd' || (!hasYearParam && !hasMonthParam);
 	const categoryId = url.searchParams.get('category')?.trim() || null;
 	const query = (url.searchParams.get('q')?.trim().toLowerCase() ?? '').slice(0, 100);
 	const tag = (url.searchParams.get('tag')?.trim() ?? '').slice(0, 40) || null;
