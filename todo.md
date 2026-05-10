@@ -1,3 +1,20 @@
+## High prio
+
+- [ ] il form è troppo lento e duplica i dati
+
+## Wife's feedback
+
+- [ ] Change filter bar’s color
+- [ ] Format consistency (decimal)
+- [ ] nable mobile’s statistics button
+- [ ] Bigger and bolder KPI titles
+- [ ] actual % in bold
+- [ ] Choose multiple categories (even all -1)
+- [ ] Editable target%
+- [ ] Missing recurring data
+- [ ] Timing improvement when adding data
+- [ ] saving color is yellow, not the warning colir
+
 ## cose non ancora inserite
 
 - [X] filtro in tabella con il periodo
@@ -11,16 +28,8 @@
 
 - [X] stilizza i simboli
 
-## Bugs
-
-- [X] il tasto "copia" del link dello space non copia
-
-## cose da ricordare?
+## Low prio
 
 - [ ] come vanno gestiti i cookie per l'europa?
 - [ ] non c'è il tasto "registra" per il login via email
-
-
-
-
-Unica cosa manuale rimanente: aggiungere le icone PNG (favicon.ico, icon-192.png, icon-512.png, apple-touch-icon.png) nella cartella static. Puoi generarle da realfavicongenerator.net partendo dal tuo SVG.
+- [ ] controllare le icone icon-192.png, icon-512.png, apple-touch-icon.png (Puoi generarle da realfavicongenerator.net)
