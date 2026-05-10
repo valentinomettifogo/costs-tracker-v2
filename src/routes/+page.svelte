@@ -5,6 +5,7 @@
 	import SuccessModal from '$lib/components/SuccessModal.svelte';
 	import TransactionFilters from '$lib/components/TransactionFilters.svelte';
 	import LandingPage from '$lib/components/LandingPage.svelte';
+	import MovementFormModal from '$lib/components/MovementFormModal.svelte';
 
 	let { data, form } = $props();
 	let showMovementForm = $state(false);
@@ -13,11 +14,6 @@
 	let showDeleteConfirmModal = $state(false);
 	let pendingDeleteForm = $state<HTMLFormElement | null>(null);
 	let pendingDeleteLabel = $state('');
-	let selectedCategoryId = $state('');
-
-	$effect(() => {
-		selectedCategoryId = editingMovement?.category_id ?? '';
-	});
 
 	const typeBadgeClass: Record<string, string> = {
 		needs: 'badge-warning',
@@ -46,25 +42,11 @@
 		return `${d}/${m}/${y}`;
 	}
 
-	const todayISO = new Date().toISOString().slice(0, 10);
 	const movementError = $derived((form as { movementError?: string } | undefined)?.movementError);
 	const movementAction = $derived((form as { movementAction?: string } | undefined)?.movementAction);
 	const hasMore = $derived(data.totalMovements > data.limit);
 	const loadMoreHref = $derived(
 		`?${data.filterQueryString ? `${data.filterQueryString}&` : ''}limit=${data.limit + data.pageStep}`
-	);
-
-	const groupedCategories = $derived(
-		Object.entries(
-			data.categories.reduce(
-				(acc: Record<string, typeof data.categories>, cat) => {
-					if (!acc[cat.type]) acc[cat.type] = [];
-					acc[cat.type].push(cat);
-					return acc;
-				},
-				{}
-			)
-		).map(([type, cats]) => ({ type, cats }))
 	);
 
 	function tagFilterHref(tag: string): string {
@@ -116,14 +98,6 @@
 		const formEl = pendingDeleteForm;
 		cancelDeleteConfirmation();
 		formEl.requestSubmit();
-	}
-
-	// For edit: determine if current stored amount is inverted relative to expected sign
-	function editInvertSign(m: MovementRow): boolean {
-		const catType = m.costs_categories?.type;
-		const expectedPositive = catType === 'income';
-		const actualPositive = m.amount >= 0;
-		return expectedPositive !== actualPositive;
 	}
 
 	function closeCreateSuccessModal() {
@@ -298,153 +272,16 @@
 		aria-label="Add transaction"
 	>+</button>
 
-	<!-- Modale inserimento/modifica movimento -->
-	{#if showMovementForm}
-		<dialog class="modal modal-open modal-bottom sm:modal-middle">
-			<div
-				class="modal-backdrop"
-				role="button"
-				tabindex="-1"
-				onclick={() => { showMovementForm = false; editingMovement = null; }}
-				onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { showMovementForm = false; editingMovement = null; } }}
-			></div>
-			<div class="modal-box">
-				<h3 class="mb-4 text-lg font-bold">{editingMovement ? 'Edit transaction' : 'New transaction'}</h3>
-
-				{#if movementError}
-					<div class="alert alert-error mb-4 text-sm">{movementError}</div>
-				{/if}
-
-				{#key editingMovement?.id ?? 'new'}
-						<form
-						method="POST"
-						action={editingMovement
-							? `?/updateMovement${data.filterQueryString ? '&' + data.filterQueryString : ''}`
-							: `?/createMovement${data.filterQueryString ? '&' + data.filterQueryString : ''}`}
-						class="space-y-4"
-					>
-						{#if editingMovement}
-							<input type="hidden" name="id" value={editingMovement.id} />
-						{/if}
-
-						<div class="grid grid-cols-2 gap-4">
-							<label class="form-control">
-								<span class="label-text mb-1 block">Amount</span>
-								<input
-									class="input input-bordered w-full"
-									type="number"
-									inputmode="decimal"
-									name="amount"
-									min="0.01"
-									step="0.01"
-									value={editingMovement ? Math.abs(editingMovement.amount) : ''}
-									required
-								/>
-							</label>
-							<label class="form-control">
-								<span class="label-text mb-1 block">Date</span>
-								<input
-									class="input input-bordered w-full"
-									type="date"
-									name="date"
-									value={editingMovement?.date ?? todayISO}
-									required
-								/>
-							</label>
-						</div>
-
-						<label class="form-control flex-row items-center gap-3 cursor-pointer">
-							<input
-								type="checkbox"
-								name="invert_sign"
-								class="checkbox checkbox-sm"
-								checked={editingMovement ? editInvertSign(editingMovement) : false}
-							/>
-							<span class="label-text">Invert sign <span class="text-xs text-base-content/50">(e.g. cashback on a cost)</span></span>
-						</label>
-
-						<label class="form-control">
-							<span class="label-text mb-1 block">Category</span>
-							<select
-								class="select select-bordered w-full"
-								name="category_id"
-								bind:value={selectedCategoryId}
-							>
-								<option value="">— none —</option>
-								{#each groupedCategories as group}
-									<optgroup label={group.type.charAt(0).toUpperCase() + group.type.slice(1)}>
-										{#each group.cats as cat}
-											<option value={cat.id}>{cat.name}</option>
-										{/each}
-									</optgroup>
-								{/each}
-							</select>
-						</label>
-
-						<label class="form-control">
-							<span class="label-text mb-1 block">Paid By</span>
-							<select class="select select-bordered w-full" name="expense_user_id">
-								<option value="">— none —</option>
-								{#each Object.entries(data.membersMap) as [uid, name]}
-									<option
-										value={uid}
-										selected={editingMovement
-											? editingMovement.expense_user_id === uid
-											: uid === data.userId}
-									>{name}</option>
-								{/each}
-							</select>
-						</label>
-
-						<label class="form-control">
-							<span class="label-text mb-1 block">Description</span>
-							<input
-								class="input input-bordered w-full"
-								type="text"
-								name="description"
-								value={editingMovement?.description ?? ''}
-								placeholder="e.g. Supermarket, Bill…"
-							/>
-						</label>
-
-						<label class="form-control">
-							<span class="label-text mb-1 block">
-								Tags <span class="text-xs text-base-content/50">(comma separated)</span>
-							</span>
-							<input
-								class="input input-bordered w-full"
-								type="text"
-								name="tags"
-								value={editingMovement?.tags?.join(', ') ?? ''}
-								placeholder="e.g. home, monthly"
-							/>
-						</label>
-
-						{#if !editingMovement}
-							<label class="form-control flex-row items-center gap-3 cursor-pointer">
-								<input type="checkbox" name="recurring" class="checkbox checkbox-sm" />
-								<span class="label-text">
-									Recurring
-									<span class="text-xs text-base-content/50">(create monthly until end of year)</span>
-								</span>
-							</label>
-						{/if}
-
-						<div class="modal-action">
-							<button
-								type="button"
-								class="btn btn-ghost"
-								onclick={() => { showMovementForm = false; editingMovement = null; }}
-							>Cancel</button>
-								<button type="submit" class="btn btn-primary">
-									{editingMovement ? 'Save' : 'Add'}
-							</button>
-						</div>
-					</form>
-				{/key}
-			</div>
-		</dialog>
-	{/if}
+	<MovementFormModal
+		open={showMovementForm}
+		editing={editingMovement}
+		{movementError}
+		filterQueryString={data.filterQueryString}
+		categories={data.categories}
+		membersMap={data.membersMap}
+		userId={data.userId ?? ''}
+		onClose={() => { showMovementForm = false; editingMovement = null; }}
+	/>
 
 	<ConfirmModal
 		open={showDeleteConfirmModal}
