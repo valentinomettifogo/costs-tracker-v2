@@ -75,11 +75,9 @@
 		<section class="rounded-box bg-base-100 p-6 shadow-sm">
 		<div class="mb-4 flex items-center justify-between">
 			<h2 class="text-lg font-semibold">Space settings</h2>
-			{#if data.space.owner_id === data.userId}
-				<button class="btn btn-ghost btn-sm" onclick={() => (editingSpace = !editingSpace)}>
-					{editingSpace ? 'Cancel' : 'Edit'}
-				</button>
-			{/if}
+			<button class="btn btn-ghost btn-sm" onclick={() => (editingSpace = !editingSpace)}>
+				{editingSpace ? 'Cancel' : 'Edit'}
+			</button>
 		</div>
 
 		{#if form?.error}

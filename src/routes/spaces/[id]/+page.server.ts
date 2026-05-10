@@ -143,8 +143,7 @@ export const actions: Actions = {
 		const { error: err } = await admin
 			.from('costs_spaces')
 			.update({ name, currency, format, color_needs, color_wants, color_savings, target_needs, target_wants, target_savings })
-			.eq('id', params.id)
-			.eq('owner_id', user.id);
+			.eq('id', params.id);
 
 		if (err) return fail(500, { error: err.message });
 

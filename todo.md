@@ -10,9 +10,9 @@
 - [ ] Bigger and bolder KPI titles
 - [ ] actual % in bold
 - [ ] Choose multiple categories (even all -1)
-- [ ] Editable target%
+- [X] Editable target%
 - [ ] Missing recurring data
-- [ ] Timing improvement when adding data
+- [X] Timing improvement when adding data
 - [X] saving color is yellow, not the warning color
 - [X] in statistic i colori sono diversi da quelli in home
 
