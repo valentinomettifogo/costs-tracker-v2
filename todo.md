@@ -6,12 +6,12 @@
 
 - [ ] Change filter bar’s color
 - [X] Format consistency (decimal)
-- [ ] nable mobile’s statistics button
+- [X] Enable mobile’s statistics button
 - [ ] Bigger and bolder KPI titles
-- [ ] actual % in bold
+- [X] actual % in bold
 - [ ] Choose multiple categories (even all -1)
 - [X] Editable target%
-- [ ] Missing recurring data
+- [ ] Missing recurring data (this is not an app problem)
 - [X] Timing improvement when adding data
 - [X] saving color is yellow, not the warning color
 - [X] in statistic i colori sono diversi da quelli in home
@@ -19,7 +19,7 @@
 ## cose non ancora inserite
 
 - [X] filtro in tabella con il periodo
-- [ ] export to csv
+- [X] export to csv
 - [X] nel progetto vecchio i segni erano birbanti, metteli corretti (i costi positivi sono dei rientri)
 - [X] quando cancello un record vorrei un modal di conferma
 
