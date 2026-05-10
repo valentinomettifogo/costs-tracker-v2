@@ -86,7 +86,7 @@
 			<ul class="menu menu-horizontal gap-2 px-1">
 				{#if user}
 					<li><a href="/">Home</a></li>
-					<li class="disabled"><a class="pointer-events-none opacity-40" tabindex="-1" aria-disabled="true">Statistic</a></li>
+					<li><a href="/statistic">Statistic</a></li>
 					<li><a href="/spaces">Spaces</a></li>
 				{/if}
 				{#if isAdmin}
