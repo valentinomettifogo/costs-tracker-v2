@@ -8,6 +8,12 @@ type Space = {
 	currency: string;
 	format: string;
 	owner_id: string;
+	color_needs: string;
+	color_wants: string;
+	color_savings: string;
+	target_needs: number;
+	target_wants: number;
+	target_savings: number;
 };
 
 type Category = {
@@ -43,7 +49,7 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 
 	const { data: space } = await locals.supabase
 		.from('costs_spaces')
-		.select('id, name, currency, format, owner_id')
+		.select('id, name, currency, format, owner_id, color_needs, color_wants, color_savings, target_needs, target_wants, target_savings')
 		.eq('id', params.id)
 		.single();
 
@@ -115,15 +121,28 @@ export const actions: Actions = {
 		const name = String(form.get('name') ?? '').trim();
 		const currency = String(form.get('currency') ?? '').trim();
 		const format = String(form.get('format') ?? '').trim();
+		const color_needs = String(form.get('color_needs') ?? '').trim();
+		const color_wants = String(form.get('color_wants') ?? '').trim();
+		const color_savings = String(form.get('color_savings') ?? '').trim();
+		const target_needs = parseInt(String(form.get('target_needs') ?? '50'), 10);
+		const target_wants = parseInt(String(form.get('target_wants') ?? '30'), 10);
+		const target_savings = parseInt(String(form.get('target_savings') ?? '20'), 10);
 
 		if (!name) return fail(400, { error: 'Name is required.' });
+
+		const hexColor = /^#[0-9a-fA-F]{6}$/;
+		if (!hexColor.test(color_needs) || !hexColor.test(color_wants) || !hexColor.test(color_savings))
+			return fail(400, { error: 'Invalid color format.' });
+
+		if ([target_needs, target_wants, target_savings].some((v) => isNaN(v) || v < 0 || v > 100))
+			return fail(400, { error: 'Targets must be between 0 and 100.' });
 
 		const admin = getAdminClient();
 		if (!admin) return fail(500, { error: 'Service unavailable.' });
 
 		const { error: err } = await admin
 			.from('costs_spaces')
-			.update({ name, currency, format })
+			.update({ name, currency, format, color_needs, color_wants, color_savings, target_needs, target_wants, target_savings })
 			.eq('id', params.id)
 			.eq('owner_id', user.id);
 

@@ -37,6 +37,18 @@
     saving: totals.income > 0 ? ((totals.saving / totals.income) * 100).toFixed(1) : '0'
   });
 
+  let targets = $derived({
+    need: data.targetNeeds,
+    wants: data.targetWants,
+    saving: data.targetSavings
+  });
+
+  let colors = $derived({
+    need: data.colorNeeds,
+    wants: data.colorWants,
+    saving: data.colorSavings
+  });
+
   // --- CHART DATA ---
   let categoryData = $derived.by(() => {
     const cats: Record<string, number> = {};
@@ -148,7 +160,22 @@
           }
         ]
       },
-      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top' } } }
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'top' },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => {
+                const label = ctx.dataset.label ?? '';
+                const val = ctx.parsed.y ?? 0;
+                return `${label}: ${formatCurrency(val)}`;
+              }
+            }
+          }
+        }
+      }
     });
 
     return () => {
@@ -157,8 +184,11 @@
     };
   });
 
-  const formatCurrency = (value: number) =>
-    new Intl.NumberFormat('en-US', { style: 'currency', currency: 'EUR' }).format(value);
+  function formatCurrency(value: number): string {
+    const locale = data.format === 'IT' ? 'it-IT' : 'en-US';
+    const currency = data.currency ?? 'EUR';
+    return new Intl.NumberFormat(locale, { style: 'currency', currency }).format(value);
+  }
 </script>
 
 <div class="p-3 md:p-6 space-y-4 md:space-y-6 bg-base-200 min-h-screen pb-safe">
@@ -198,23 +228,29 @@
 
         <div class="stat bg-base-100 shadow rounded-2xl p-3 md:p-4">
           <div class="stat-title text-xs">Needs</div>
-          <div class="stat-value text-warning text-lg md:text-2xl break-all">{formatCurrency(totals.need)}</div>
-          <div class="stat-desc text-xs">{percentages.need}% <span class="opacity-50">/ 50%</span></div>
-          <progress class="progress progress-warning w-full mt-2" value={percentages.need} max="50"></progress>
+          <div class="stat-value text-lg md:text-2xl break-all" style="color:{colors.need}">{formatCurrency(totals.need)}</div>
+          <div class="stat-desc text-xs">{percentages.need}% <span class="opacity-50">/ {targets.need}%</span></div>
+          <div class="w-full mt-2 rounded-full bg-base-200 h-2">
+            <div class="h-2 rounded-full transition-all" style="background-color:{colors.need};width:{Math.min(Number(percentages.need) / targets.need * 100, 100)}%"></div>
+          </div>
         </div>
 
         <div class="stat bg-base-100 shadow rounded-2xl p-3 md:p-4">
           <div class="stat-title text-xs">Wants</div>
-          <div class="stat-value text-secondary text-lg md:text-2xl break-all">{formatCurrency(totals.wants)}</div>
-          <div class="stat-desc text-xs">{percentages.wants}% <span class="opacity-50">/ 30%</span></div>
-          <progress class="progress progress-secondary w-full mt-2" value={percentages.wants} max="30"></progress>
+          <div class="stat-value text-lg md:text-2xl break-all" style="color:{colors.wants}">{formatCurrency(totals.wants)}</div>
+          <div class="stat-desc text-xs">{percentages.wants}% <span class="opacity-50">/ {targets.wants}%</span></div>
+          <div class="w-full mt-2 rounded-full bg-base-200 h-2">
+            <div class="h-2 rounded-full transition-all" style="background-color:{colors.wants};width:{Math.min(Number(percentages.wants) / targets.wants * 100, 100)}%"></div>
+          </div>
         </div>
 
         <div class="stat bg-base-100 shadow rounded-2xl p-3 md:p-4">
           <div class="stat-title text-xs">Savings</div>
-          <div class="stat-value text-primary text-lg md:text-2xl break-all">{formatCurrency(totals.saving)}</div>
-          <div class="stat-desc text-xs">{percentages.saving}% <span class="opacity-50">/ 20%</span></div>
-          <progress class="progress progress-primary w-full mt-2" value={percentages.saving} max="20"></progress>
+          <div class="stat-value text-lg md:text-2xl break-all" style="color:{colors.saving}">{formatCurrency(totals.saving)}</div>
+          <div class="stat-desc text-xs">{percentages.saving}% <span class="opacity-50">/ {targets.saving}%</span></div>
+          <div class="w-full mt-2 rounded-full bg-base-200 h-2">
+            <div class="h-2 rounded-full transition-all" style="background-color:{colors.saving};width:{Math.min(Number(percentages.saving) / targets.saving * 100, 100)}%"></div>
+          </div>
         </div>
       </div>
 
@@ -247,8 +283,8 @@
         <div>
           <h3 class="font-bold text-sm">Budget Insight</h3>
           <div class="text-xs">
-            Wants at {percentages.wants}% (target 30%) · Savings at {percentages.saving}% (target 20%).
-            {#if Number(percentages.saving) < 20}
+            Wants at {percentages.wants}% (target {targets.wants}%) · Savings at {percentages.saving}% (target {targets.saving}%).
+            {#if Number(percentages.saving) < targets.saving}
               Consider reducing Wants to boost your savings rate.
             {/if}
           </div>

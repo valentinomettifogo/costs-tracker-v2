@@ -1,11 +1,11 @@
 ## High prio
 
-- [ ] il form è troppo lento e duplica i dati
+- [X] il form è troppo lento e duplica i dati
 
 ## Wife's feedback
 
 - [ ] Change filter bar’s color
-- [ ] Format consistency (decimal)
+- [X] Format consistency (decimal)
 - [ ] nable mobile’s statistics button
 - [ ] Bigger and bolder KPI titles
 - [ ] actual % in bold
@@ -13,7 +13,8 @@
 - [ ] Editable target%
 - [ ] Missing recurring data
 - [ ] Timing improvement when adding data
-- [ ] saving color is yellow, not the warning colir
+- [X] saving color is yellow, not the warning color
+- [X] in statistic i colori sono diversi da quelli in home
 
 ## cose non ancora inserite
 

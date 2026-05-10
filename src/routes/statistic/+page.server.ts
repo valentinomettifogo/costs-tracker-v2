@@ -35,6 +35,14 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		categories: [] as Category[],
 		availableYears: [] as number[],
 		hasActiveSpace: false,
+		currency: 'EUR',
+		format: 'EN',
+		colorNeeds: '#fbbf24',
+		colorWants: '#38bdf8',
+		colorSavings: '#a78bfa',
+		targetNeeds: 50,
+		targetWants: 30,
+		targetSavings: 20,
 		filters: {
 			year: null as number | null,
 			month: null as number | null,
@@ -57,6 +65,12 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		.maybeSingle();
 
 	if (!conn) return empty;
+
+	const { data: space } = await locals.supabase
+		.from('costs_spaces')
+		.select('currency, format, color_needs, color_wants, color_savings, target_needs, target_wants, target_savings')
+		.eq('id', activeSpaceId)
+		.single();
 
 	const adminData = getAdminClient();
 	const movementsClient = adminData ?? locals.supabase;
@@ -176,6 +190,14 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		categories: (categories as Category[]) ?? [],
 		availableYears,
 		hasActiveSpace: true,
+		currency: space?.currency ?? 'EUR',
+		format: space?.format ?? 'EN',
+		colorNeeds: space?.color_needs ?? '#fbbf24',
+		colorWants: space?.color_wants ?? '#38bdf8',
+		colorSavings: space?.color_savings ?? '#a78bfa',
+		targetNeeds: space?.target_needs ?? 50,
+		targetWants: space?.target_wants ?? 30,
+		targetSavings: space?.target_savings ?? 20,
 		filters: {
 			year,
 			month,

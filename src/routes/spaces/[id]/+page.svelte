@@ -112,6 +112,36 @@
 						</select>
 					</label>
 				</div>
+				<div class="divider text-xs my-1">Budget Targets (%)</div>
+				<div class="grid grid-cols-3 gap-3">
+					<label class="form-control">
+						<span class="label-text mb-1 block">Needs</span>
+						<input class="input input-bordered w-full" type="number" name="target_needs" min="0" max="100" value={data.space.target_needs} required />
+					</label>
+					<label class="form-control">
+						<span class="label-text mb-1 block">Wants</span>
+						<input class="input input-bordered w-full" type="number" name="target_wants" min="0" max="100" value={data.space.target_wants} required />
+					</label>
+					<label class="form-control">
+						<span class="label-text mb-1 block">Savings</span>
+						<input class="input input-bordered w-full" type="number" name="target_savings" min="0" max="100" value={data.space.target_savings} required />
+					</label>
+				</div>
+				<div class="divider text-xs my-1">Category Colors</div>
+				<div class="grid grid-cols-3 gap-3">
+					<label class="form-control">
+						<span class="label-text mb-1 block">Needs</span>
+						<input class="input input-bordered w-full h-10 cursor-pointer p-1" type="color" name="color_needs" value={data.space.color_needs} />
+					</label>
+					<label class="form-control">
+						<span class="label-text mb-1 block">Wants</span>
+						<input class="input input-bordered w-full h-10 cursor-pointer p-1" type="color" name="color_wants" value={data.space.color_wants} />
+					</label>
+					<label class="form-control">
+						<span class="label-text mb-1 block">Savings</span>
+						<input class="input input-bordered w-full h-10 cursor-pointer p-1" type="color" name="color_savings" value={data.space.color_savings} />
+					</label>
+				</div>
 				<button class="btn btn-primary" type="submit">Save</button>
 			</form>
 		{:else}
@@ -123,6 +153,14 @@
 				<div>
 					<dt class="text-base-content/60">Format</dt>
 					<dd class="font-medium">{data.space.format}</dd>
+				</div>
+				<div class="col-span-2 sm:col-span-3">
+					<dt class="text-base-content/60 mb-1">Budget targets</dt>
+					<dd class="flex gap-3 text-sm font-medium">
+						<span style="color:{data.space.color_needs}">Needs {data.space.target_needs}%</span>
+						<span style="color:{data.space.color_wants}">Wants {data.space.target_wants}%</span>
+						<span style="color:{data.space.color_savings}">Savings {data.space.target_savings}%</span>
+					</dd>
 				</div>
 			</dl>
 		{/if}

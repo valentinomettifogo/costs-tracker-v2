@@ -14,6 +14,12 @@ type Space = {
 	currency: string;
 	format: string;
 	owner_id: string;
+	color_needs: string;
+	color_wants: string;
+	color_savings: string;
+	target_needs: number;
+	target_wants: number;
+	target_savings: number;
 };
 
 type Category = {
@@ -76,7 +82,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 
 	const { data: space } = await locals.supabase
 		.from('costs_spaces')
-		.select('id, name, currency, format, owner_id')
+		.select('id, name, currency, format, owner_id, color_needs, color_wants, color_savings, target_needs, target_wants, target_savings')
 		.eq('id', activeSpaceId)
 		.single();
 

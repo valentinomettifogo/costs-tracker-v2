@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { MovementRow } from './+page.server';
 	import { Pencil, Trash2 } from 'lucide-svelte';
+	import { enhance } from '$app/forms';
 	import ConfirmModal from '$lib/components/ConfirmModal.svelte';
 	import SuccessModal from '$lib/components/SuccessModal.svelte';
 	import TransactionFilters from '$lib/components/TransactionFilters.svelte';
@@ -16,11 +17,20 @@
 	let pendingDeleteLabel = $state('');
 
 	const typeBadgeClass: Record<string, string> = {
-		needs: 'badge-warning',
-		wants: 'badge-info',
-		income: 'badge-success',
-		savings: 'badge-primary'
+		income: 'badge-success'
 	};
+
+	function typeBadgeStyle(type: string | null | undefined): string {
+		const s = data.activeSpace;
+		if (!s || !type) return '';
+		const map: Record<string, string> = {
+			needs: s.color_needs,
+			wants: s.color_wants,
+			savings: s.color_savings
+		};
+		const color = map[type];
+		return color ? `background-color:${color};color:#fff;border-color:${color}` : '';
+	}
 
 	function amountClass(amount: number, type?: string | null): string {
 		if (type === 'savings') return 'text-warning';
@@ -162,7 +172,12 @@
 									</td>
 									<td>
 										{#if cat?.type}
-											<span class="badge badge-sm {typeBadgeClass[cat.type] ?? 'badge-ghost'}">{cat.type}</span>
+											{#if cat?.type}
+										<span
+											class="badge badge-sm {typeBadgeClass[cat.type] ?? 'badge-ghost'}"
+											style={typeBadgeStyle(cat.type)}
+										>{cat.type}</span>
+									{/if}
 										{/if}
 									</td>
 									<td class="text-xs text-base-content/60">
@@ -210,7 +225,10 @@
 							<div class="flex min-w-0 flex-wrap items-center gap-1.5">
 								<span class="text-xl font-semibold {amountClass(m.amount, m.costs_categories?.type)}">{formatAmount(m.amount)}</span>
 								<span class="text-base font-medium">{cat?.name ?? '—'}</span>
-								{#if cat?.type}<span class="badge badge-sm {typeBadgeClass[cat.type] ?? 'badge-ghost'}">{cat.type}</span>{/if}
+								{#if cat?.type}<span
+							class="badge badge-sm {typeBadgeClass[cat.type] ?? 'badge-ghost'}"
+							style={typeBadgeStyle(cat.type)}
+						>{cat.type}</span>{/if}
 							</div>
 							<!-- Body: description -->
 							{#if m.description}
@@ -235,7 +253,7 @@
 									<button class="btn btn-ghost btn-sm" onclick={() => openEdit(m)} aria-label="Edit">
 										<Pencil size={16} />
 									</button>
-								<form method="POST" action={`?/deleteMovement${data.filterQueryString ? '&' + data.filterQueryString : ''}`}>
+								<form method="POST" action={`?/deleteMovement${data.filterQueryString ? '&' + data.filterQueryString : ''}`} use:enhance use:enhance>
 										<input type="hidden" name="id" value={m.id} />
 										<button
 											class="btn btn-ghost btn-sm text-error"
