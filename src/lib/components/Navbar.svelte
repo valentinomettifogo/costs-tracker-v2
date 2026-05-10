@@ -34,6 +34,7 @@
 	);
 
 	const encodedPath = $derived(encodeURIComponent(currentPath));
+	const currentPathClean = $derived(currentPath.split('?')[0]);
 </script>
 
 <nav class="relative z-50 border-b border-base-300 bg-base-100/90 backdrop-blur">
@@ -140,4 +141,46 @@
 			{/if}
 		</div>
 	</div>
+</nav>
+
+<!-- Mobile: bottom navigation bar -->
+<nav class="fixed inset-x-0 bottom-0 z-40 border-t border-base-300 bg-base-100 md:hidden">
+	{#if user}
+		<ul class="grid h-16 items-stretch text-xs font-medium {isAdmin ? 'grid-cols-4' : 'grid-cols-3'}">
+			<li>
+				<a
+					class={`flex h-full items-center justify-center ${currentPathClean === '/' ? 'bg-primary text-primary-content' : 'text-base-content/80'}`}
+					href="/"
+				>
+					Home
+				</a>
+			</li>
+			<li>
+				<a
+					class={`flex h-full items-center justify-center ${currentPathClean === '/statistic' ? 'bg-primary text-primary-content' : 'text-base-content/80'}`}
+					href="/statistic"
+				>
+					Statistic
+				</a>
+			</li>
+			<li>
+				<a
+					class={`flex h-full items-center justify-center ${currentPathClean.startsWith('/spaces') ? 'bg-primary text-primary-content' : 'text-base-content/80'}`}
+					href="/spaces"
+				>
+					Spaces
+				</a>
+			</li>
+			{#if isAdmin}
+				<li>
+					<a
+						class={`flex h-full items-center justify-center ${currentPathClean === '/admin' ? 'bg-accent text-accent-content' : 'text-accent'}`}
+						href="/admin"
+					>
+						Admin
+					</a>
+				</li>
+			{/if}
+		</ul>
+	{/if}
 </nav>
