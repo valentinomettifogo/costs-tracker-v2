@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { invalidateAll, goto } from '$app/navigation';
+	import logo from '$lib/assets/logo.png';
 
 	interface Props {
 		user: { email?: string; user_metadata?: Record<string, unknown> } | null;
@@ -80,7 +81,9 @@
 	<!-- Desktop: navbar completa -->
 	<div class="navbar mx-auto hidden max-w-6xl px-4 md:flex">
 		<div class="navbar-start">
-			<a class="btn btn-ghost text-lg font-semibold" href="/">Costs Tracker</a>
+			<a class="btn btn-ghost px-2" href="/">
+				<img src={logo} alt="Costs Tracker" class="h-10 w-auto" />
+			</a>
 		</div>
 
 		<div class="navbar-center">
