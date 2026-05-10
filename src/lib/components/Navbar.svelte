@@ -90,7 +90,7 @@
 			<ul class="menu menu-horizontal gap-2 px-1">
 				{#if user}
 					<li><a href="/">Home</a></li>
-					<li><a href="/statistic">Statistics</a></li>
+					<li><a href="/statistics">Statistics</a></li>
 					<li><a href="/spaces">Spaces</a></li>
 				{/if}
 				{#if isAdmin}
@@ -160,8 +160,8 @@
 			</li>
 			<li>
 				<a
-					class={`flex h-full items-center justify-center ${currentPathClean === '/statistic' ? 'bg-primary text-primary-content' : 'text-base-content/80'}`}
-					href="/statistic"
+					class={`flex h-full items-center justify-center ${currentPathClean === '/statistics' ? 'bg-primary text-primary-content' : 'text-base-content/80'}`}
+					href="/statistics"
 				>
 					Statistics
 				</a>

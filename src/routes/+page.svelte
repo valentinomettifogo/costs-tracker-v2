@@ -1,7 +1,8 @@
 <script lang="ts">
 	import type { MovementRow } from './+page.server';
-	import { Pencil, Trash2 } from 'lucide-svelte';
+	import { Pencil, Trash2, Download } from 'lucide-svelte';
 	import { enhance } from '$app/forms';
+	import { goto } from '$app/navigation';
 	import ConfirmModal from '$lib/components/ConfirmModal.svelte';
 	import SuccessModal from '$lib/components/SuccessModal.svelte';
 	import TransactionFilters from '$lib/components/TransactionFilters.svelte';
@@ -58,6 +59,13 @@
 	const loadMoreHref = $derived(
 		`?${data.filterQueryString ? `${data.filterQueryString}&` : ''}limit=${data.limit + data.pageStep}`
 	);
+	const exportHref = $derived(
+		`/export${data.filterQueryString ? `?${data.filterQueryString}` : ''}`
+	);
+
+	function loadMore() {
+		goto(loadMoreHref, { noScroll: true, keepFocus: true });
+	}
 
 	function tagFilterHref(tag: string): string {
 		const params = new URLSearchParams(data.filterQueryString);
@@ -131,6 +139,10 @@
 		<div class="flex flex-wrap items-center gap-2 px-4 md:px-0">
 			<h1 class="text-2xl font-bold">{data.activeSpace.name}</h1>
 			<span class="badge badge-ghost badge-sm">{data.activeSpace.currency} · {data.activeSpace.format}</span>
+			<a href={exportHref} download class="btn btn-ghost btn-xs ml-auto gap-1" title="Export CSV">
+				<Download size={14} />
+				<span class="hidden sm:inline">Export CSV</span>
+			</a>
 		</div>
 
 		<!-- Transactions -->
@@ -272,9 +284,9 @@
 
 				{#if hasMore}
 					<div class="mt-4 text-center">
-						<a href={loadMoreHref} class="btn btn-ghost btn-sm">
+						<button type="button" class="btn btn-ghost btn-sm" onclick={loadMore}>
 							Load more ({data.totalMovements - data.limit} remaining)
-						</a>
+						</button>
 					</div>
 				{/if}
 			{/if}
