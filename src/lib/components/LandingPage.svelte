@@ -1,5 +1,5 @@
 <script lang="ts">
-	import demoImg from '$lib/assets/demo.png';
+
 </script>
 
 <section class="hero rounded-2rem bg-base-100 p-6 shadow-sm md:p-12 lg:p-16 mb-16">
@@ -23,7 +23,7 @@
                 <div class="camera"></div> 
                 <div class="display">
                     <div class="artboard artboard-demo phone-1 overflow-hidden rounded-[2.5rem]">
-                        <img src={demoImg} alt="App demo screenshot" class="w-full h-full object-cover object-top" />
+                        <img src="/demo.png" alt="App demo screenshot" class="w-full h-full object-cover object-top" />
                     </div>
                 </div>
             </div>

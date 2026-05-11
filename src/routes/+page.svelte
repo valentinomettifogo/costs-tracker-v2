@@ -136,13 +136,9 @@
 	</section>
 {:else}
 	<div class="-mx-3 space-y-2 md:mx-0">
-		<div class="flex flex-wrap items-center gap-2 px-4 md:px-0">
+		<div class="flex flex-wrap items-center gap-2 px-4 pr-20 md:px-0 md:pr-0">
 			<h1 class="text-2xl font-bold">{data.activeSpace.name}</h1>
 			<span class="badge badge-ghost badge-sm">{data.activeSpace.currency} · {data.activeSpace.format}</span>
-			<a href={exportHref} download class="btn btn-ghost btn-xs gap-1" title="Export CSV">
-				<Download size={14} />
-				<span class="hidden sm:inline">Export CSV</span>
-			</a>
 		</div>
 
 		<!-- Transactions -->
@@ -153,6 +149,12 @@
 				categories={data.categories}
 				filterQueryString={data.filterQueryString}
 			/>
+			<div class="flex justify-end px-2 pb-1">
+				<a href={exportHref} download class="btn btn-ghost btn-xs gap-1" title="Export CSV">
+					<Download size={14} />
+					<span>Export CSV</span>
+				</a>
+			</div>
 
 			{#if data.movements.length === 0}
 				<p class="text-sm text-base-content/60">No transactions found for the selected filters.</p>

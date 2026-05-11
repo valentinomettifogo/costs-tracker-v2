@@ -93,3 +93,32 @@ CREATE TABLE costs_space_invites (
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- 7. costs_notifications
+-- Notifiche persistenti per movimenti creati da altri utenti in spazi condivisi.
+-- INSERT avviene tramite service role; SELECT tramite RLS (user vede solo le proprie).
+CREATE TABLE costs_notifications (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    space_id UUID NOT NULL REFERENCES costs_spaces(id) ON DELETE CASCADE,
+    movement_id UUID REFERENCES costs_movements(id) ON DELETE SET NULL,
+    actor_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    actor_name TEXT NOT NULL,
+    amount NUMERIC(10, 2) NOT NULL,
+    description TEXT,
+    space_name TEXT NOT NULL,
+    read BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE costs_notifications ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "notifications: select own"
+    ON costs_notifications FOR SELECT
+    TO authenticated
+    USING (auth.uid() = user_id);
+
+-- Abilita Supabase Realtime per aggiornamenti live
+ALTER PUBLICATION supabase_realtime ADD TABLE costs_notifications;
+
+CREATE INDEX costs_notifications_user_idx ON costs_notifications(user_id, created_at DESC);

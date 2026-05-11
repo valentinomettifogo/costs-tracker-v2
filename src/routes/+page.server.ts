@@ -328,9 +328,49 @@ export const actions: Actions = {
 			user_id: user.id
 		}));
 
-		const { error: err } = await admin.from('costs_movements').insert(rows);
+		const { data: insertedRows, error: err } = await admin
+			.from('costs_movements')
+			.insert(rows)
+			.select('id')
+			.limit(1);
 
 		if (err) return fail(500, { movementError: err.message });
+
+		// Create notifications for other space members (silent – never blocks the main flow)
+		try {
+			const firstMovementId = insertedRows?.[0]?.id ?? null;
+			const actorName =
+				(user.user_metadata?.full_name as string | undefined) ??
+				(user.user_metadata?.name as string | undefined) ??
+				(user.user_metadata?.display_name as string | undefined) ??
+				user.email?.split('@')[0] ??
+				'Someone';
+
+			const [{ data: spaceData }, { data: members }] = await Promise.all([
+				admin.from('costs_spaces').select('name').eq('id', activeSpaceId).single(),
+				admin
+					.from('costs_spaces_connections')
+					.select('user_id')
+					.eq('space_id', activeSpaceId)
+					.neq('user_id', user.id)
+			]);
+
+			if (spaceData && members && members.length > 0) {
+				const notificationRows = members.map((m) => ({
+					user_id: m.user_id,
+					space_id: activeSpaceId,
+					movement_id: firstMovementId,
+					actor_id: user.id,
+					actor_name: actorName,
+					amount: finalAmount,
+					description,
+					space_name: spaceData.name
+				}));
+				await admin.from('costs_notifications').insert(notificationRows);
+			}
+		} catch {
+			// Notifications are best-effort; do not fail the request
+		}
 
 		return { movementSuccess: true, movementAction: 'create' };
 	},

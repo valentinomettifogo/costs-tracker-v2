@@ -1,16 +1,33 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { invalidateAll, goto } from '$app/navigation';
-	import logo from '$lib/assets/logo.png';
+	import NotificationBell from '$lib/components/NotificationBell.svelte';
+
+	interface Notification {
+		id: string;
+		user_id: string;
+		space_id: string;
+		movement_id: string | null;
+		actor_id: string;
+		actor_name: string;
+		amount: number;
+		description: string | null;
+		space_name: string;
+		read: boolean;
+		created_at: string;
+	}
 
 	interface Props {
-		user: { email?: string; user_metadata?: Record<string, unknown> } | null;
+		user: { id?: string; email?: string; user_metadata?: Record<string, unknown> } | null;
 		role: string | null;
 		isAdmin: boolean;
 		currentPath: string;
+		notifications: Notification[];
 	}
 
-	let { user, role, isAdmin, currentPath }: Props = $props();
+	let { user, role, isAdmin, currentPath, notifications }: Props = $props();
+
+	const userId = $derived(user?.id ?? '');
 
 	function handleLogout() {
 		return async ({ result }: { result: { type: string; location?: string } }) => {
@@ -40,8 +57,9 @@
 
 <nav class="relative z-50 border-b border-base-300 bg-base-100/90 backdrop-blur">
 	<!-- Mobile: solo avatar/login fisso in alto a destra -->
-	<div class="fixed right-4 top-3 z-50 md:hidden">
+	<div class="fixed right-4 top-3 z-50 flex items-center gap-1 md:hidden">
 		{#if user}
+			<NotificationBell {notifications} {userId} />
 			<div class="dropdown dropdown-end">
 				<div tabindex="0" role="button" class="avatar btn btn-circle btn-ghost btn-sm">
 					{#if avatarUrl}
@@ -82,7 +100,7 @@
 	<div class="navbar mx-auto hidden max-w-6xl px-4 md:flex">
 		<div class="navbar-start">
 			<a class="btn btn-ghost px-2" href="/">
-				<img src={logo} alt="Costs Tracker" class="h-10 w-auto" />
+				<img src="/logo.png" alt="Costs Tracker" class="h-10 w-auto" />
 			</a>
 		</div>
 
@@ -108,6 +126,7 @@
 
 		<div class="navbar-end gap-2">
 			{#if user}
+				<NotificationBell {notifications} {userId} />
 				<div class="dropdown dropdown-end">
 					<div tabindex="0" role="button" class="avatar btn btn-circle btn-ghost">
 						{#if avatarUrl}
