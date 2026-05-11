@@ -11,7 +11,6 @@
 - [X] actual % in bold
 - [ ] Choose multiple categories (even all -1)
 - [X] Editable target%
-- [ ] Missing recurring data (this is not an app problem)
 - [X] Timing improvement when adding data
 - [X] saving color is yellow, not the warning color
 - [X] in statistic i colori sono diversi da quelli in home

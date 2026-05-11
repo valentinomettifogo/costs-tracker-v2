@@ -52,7 +52,7 @@
 	}
 </script>
 
-<details class="collapse collapse-arrow mb-3 rounded-box border border-base-300 bg-base-200/40">
+<details class="collapse collapse-arrow mb-3 rounded-box border border-base-500 bg-base-100 shadow-sm">
 	<summary class="collapse-title min-h-0 py-3 text-sm font-semibold text-base-content">Filters</summary>
 	<div class="collapse-content pt-1">
 		{#if filters.tag}

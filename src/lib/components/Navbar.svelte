@@ -61,8 +61,8 @@
 						<p class="text-xs text-base-content/60">{user.email}</p>
 						<p class="text-xs text-base-content/40 capitalize">{role ?? 'user'}</p>
 					</li>
-					<li class="divider my-1 h-px bg-base-300"></li>
-					<li>
+					<li class="divider my-1 h-px bg-base-300"></li>				<li><a href="/spaces" class="{currentPathClean.startsWith('/spaces') ? 'active' : ''}">Spaces</a></li>
+				<li class="divider my-1 h-px bg-base-300"></li>					<li>
 					<form method="POST" action="/login?/logout" use:enhance={handleLogout} class="p-0">
 							<button class="btn btn-ghost btn-sm w-full justify-start text-error" type="submit">
 								Logout
@@ -149,7 +149,7 @@
 <!-- Mobile: bottom navigation bar -->
 <nav class="fixed inset-x-0 bottom-0 z-40 border-t border-base-300 bg-base-100 md:hidden">
 	{#if user}
-		<ul class="grid h-16 items-stretch text-xs font-medium {isAdmin ? 'grid-cols-4' : 'grid-cols-3'}">
+		<ul class="grid h-16 items-stretch text-xs font-medium {isAdmin ? 'grid-cols-3' : 'grid-cols-2'}">
 			<li>
 				<a
 					class={`flex h-full items-center justify-center ${currentPathClean === '/' ? 'bg-primary text-primary-content' : 'text-base-content/80'}`}
@@ -164,14 +164,6 @@
 					href="/statistics"
 				>
 					Statistics
-				</a>
-			</li>
-			<li>
-				<a
-					class={`flex h-full items-center justify-center ${currentPathClean.startsWith('/spaces') ? 'bg-primary text-primary-content' : 'text-base-content/80'}`}
-					href="/spaces"
-				>
-					Spaces
 				</a>
 			</li>
 			{#if isAdmin}
