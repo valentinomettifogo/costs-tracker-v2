@@ -1,9 +1,8 @@
 import { redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { getAdminClient } from '$lib/server/auth';
+import { scanAvailableYears } from '$lib/server/movements';
 
-const YEARS_SCAN_PAGE_SIZE = 1000;
-const YEARS_SCAN_MAX_ROWS = 10000;
 const MAX_STATS_ROWS = 5000;
 
 type Category = {
@@ -81,34 +80,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		.eq('space_id', activeSpaceId)
 		.order('name');
 
-	// Scan available years
-	const yearSet = new Set<number>();
-	let scannedRows = 0;
-	let from = 0;
-
-	while (scannedRows < YEARS_SCAN_MAX_ROWS) {
-		const to = from + YEARS_SCAN_PAGE_SIZE - 1;
-		const { data: dateRows } = await movementsClient
-			.from('costs_movements')
-			.select('date')
-			.eq('space_id', activeSpaceId)
-			.order('date', { ascending: false })
-			.range(from, to);
-
-		if (!dateRows || dateRows.length === 0) break;
-
-		for (const row of dateRows as Array<{ date: string | null }>) {
-			if (!row.date) continue;
-			const y = Number.parseInt(row.date.slice(0, 4), 10);
-			if (Number.isInteger(y)) yearSet.add(y);
-		}
-
-		scannedRows += dateRows.length;
-		if (dateRows.length < YEARS_SCAN_PAGE_SIZE) break;
-		from += YEARS_SCAN_PAGE_SIZE;
-	}
-
-	const availableYears = Array.from(yearSet).sort((a, b) => b - a);
+	const availableYears = await scanAvailableYears(movementsClient, activeSpaceId);
 
 	// Parse URL filters
 	const yearRaw = url.searchParams.get('year')?.trim() ?? '';

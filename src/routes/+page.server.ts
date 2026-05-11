@@ -1,12 +1,11 @@
 import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { getAdminClient } from '$lib/server/auth';
+import { scanAvailableYears } from '$lib/server/movements';
 
 const DEFAULT_LIMIT = 20;
 const PAGE_STEP = 20;
 const MAX_LIMIT = 200;
-const YEARS_SCAN_PAGE_SIZE = 1000;
-const YEARS_SCAN_MAX_ROWS = 10000;
 
 type Space = {
 	id: string;
@@ -41,6 +40,9 @@ export type MovementRow = {
 	costs_categories: { id: string; name: string; type: string } | null;
 };
 
+const VALID_TYPES = ['needs', 'wants', 'income', 'savings'] as const;
+type CategoryType = (typeof VALID_TYPES)[number];
+
 export const load: PageServerLoad = async ({ locals, url }) => {
 	const { user } = await locals.safeGetSession();
 
@@ -58,7 +60,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			month: null as number | null,
 			ytd: false,
 			categoryId: null as string | null,
-			type: null as string | null,
+			type: null as CategoryType | null,
 			query: '',
 			tag: null as string | null
 		},
@@ -133,8 +135,6 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	const categoryId = url.searchParams.get('category')?.trim() || null;
 	const query = (url.searchParams.get('q')?.trim().toLowerCase() ?? '').slice(0, 100);
 	const tag = (url.searchParams.get('tag')?.trim() ?? '').slice(0, 40) || null;
-	const VALID_TYPES = ['needs', 'wants', 'income', 'savings'] as const;
-	type CategoryType = typeof VALID_TYPES[number];
 	const typeRaw = url.searchParams.get('type')?.trim().toLowerCase() ?? '';
 	const type: CategoryType | null = (VALID_TYPES as readonly string[]).includes(typeRaw) ? (typeRaw as CategoryType) : null;
 
@@ -151,33 +151,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	// Usa admin client per bypassare RLS nel join costs_categories
 	const movementsClient = adminData ?? locals.supabase;
 
-	const yearSet = new Set<number>();
-	let scannedRows = 0;
-	let from = 0;
-
-	while (scannedRows < YEARS_SCAN_MAX_ROWS) {
-		const to = from + YEARS_SCAN_PAGE_SIZE - 1;
-		const { data: dateRows } = await movementsClient
-			.from('costs_movements')
-			.select('date')
-			.eq('space_id', activeSpaceId)
-			.order('date', { ascending: false })
-			.range(from, to);
-
-		if (!dateRows || dateRows.length === 0) break;
-
-		for (const row of dateRows as Array<{ date: string | null }>) {
-			if (!row.date) continue;
-			const y = Number.parseInt(row.date.slice(0, 4), 10);
-			if (Number.isInteger(y)) yearSet.add(y);
-		}
-
-		scannedRows += dateRows.length;
-		if (dateRows.length < YEARS_SCAN_PAGE_SIZE) break;
-		from += YEARS_SCAN_PAGE_SIZE;
-	}
-
-	const availableYears = Array.from(yearSet).sort((a, b) => b - a);
+	const availableYears = await scanAvailableYears(movementsClient, activeSpaceId);
 	const useCurrentPeriodDefaults = !hasYearParam && !hasMonthParam;
 	if (useCurrentPeriodDefaults) {
 		year = availableYears.includes(currentYear) ? currentYear : year;

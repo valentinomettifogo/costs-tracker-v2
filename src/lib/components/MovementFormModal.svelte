@@ -76,7 +76,7 @@
 		<div
 			class="modal-backdrop"
 			role="button"
-			tabindex="-1"
+			tabindex="0"
 			onclick={closeModal}
 			onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') closeModal(); }}
 		></div>

@@ -105,7 +105,7 @@ export const GET: RequestHandler = async ({ locals, url }) => {
 
 	const header = ['Date', 'Amount', 'Category', 'Type', 'Description', 'Tags'].join(fieldSep);
 
-	const rows = (movements as Array<{
+	const rows = (movements as unknown as Array<{
 		amount: number;
 		date: string;
 		description: string | null;

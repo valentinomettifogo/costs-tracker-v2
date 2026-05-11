@@ -1,8 +1,11 @@
+# Todo & Roadmap
+
 ## High prio
 
 - [X] il form è troppo lento e duplica i dati
 
-## Wife's feedback
+
+## Feauture and Feedback to handle
 
 - [X] Change filter bar’s color
 - [X] Format consistency (decimal)
@@ -14,21 +17,15 @@
 - [X] Timing improvement when adding data
 - [X] saving color is yellow, not the warning color
 - [X] in statistic i colori sono diversi da quelli in home
-
-## cose non ancora inserite
-
 - [X] filtro in tabella con il periodo
 - [X] export to csv
 - [X] nel progetto vecchio i segni erano birbanti, metteli corretti (i costi positivi sono dei rientri)
 - [X] quando cancello un record vorrei un modal di conferma
-
 - [X] notifiche per le aggiunte
-
-## Miglioramenti
-
 - [X] stilizza i simboli
 
-## Low prio
+
+## Low prio activity
 
 - [ ] come vanno gestiti i cookie per l'europa?
 - [ ] non c'è il tasto "registra" per il login via email

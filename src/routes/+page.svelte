@@ -186,13 +186,11 @@
 									</td>
 									<td>
 										{#if cat?.type}
-											{#if cat?.type}
 										<span
 											class="badge badge-sm {typeBadgeClass[cat.type] ?? 'badge-ghost'}"
 											style={typeBadgeStyle(cat.type)}
 										>{cat.type}</span>
 									{/if}
-										{/if}
 									</td>
 									<td class="text-xs text-base-content/60">
 										{m.expense_user_id ? (data.membersMap[m.expense_user_id] ?? m.expense_user_id.slice(0, 8)) : ''}
@@ -267,7 +265,7 @@
 									<button class="btn btn-ghost btn-sm" onclick={() => openEdit(m)} aria-label="Edit">
 										<Pencil size={16} />
 									</button>
-								<form method="POST" action={`?/deleteMovement${data.filterQueryString ? '&' + data.filterQueryString : ''}`} use:enhance use:enhance>
+								<form method="POST" action={`?/deleteMovement${data.filterQueryString ? '&' + data.filterQueryString : ''}`} use:enhance>
 										<input type="hidden" name="id" value={m.id} />
 										<button
 											class="btn btn-ghost btn-sm text-error"
