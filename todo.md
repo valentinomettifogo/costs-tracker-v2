@@ -4,7 +4,7 @@
 
 ## Wife's feedback
 
-- [ ] Change filter bar’s color
+- [X] Change filter bar’s color
 - [X] Format consistency (decimal)
 - [X] Enable mobile’s statistics button
 - [ ] Bigger and bolder KPI titles
