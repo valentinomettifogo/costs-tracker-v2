@@ -34,7 +34,7 @@
 	}
 
 	function amountClass(amount: number, type?: string | null): string {
-		if (type === 'savings') return 'text-warning';
+		if (type === 'savings') return 'text-yellow-400';
 		return amount >= 0 ? 'text-success' : 'text-error';
 	}
 
@@ -139,7 +139,7 @@
 		<div class="flex flex-wrap items-center gap-2 px-4 md:px-0">
 			<h1 class="text-2xl font-bold">{data.activeSpace.name}</h1>
 			<span class="badge badge-ghost badge-sm">{data.activeSpace.currency} · {data.activeSpace.format}</span>
-			<a href={exportHref} download class="btn btn-ghost btn-xs ml-auto gap-1" title="Export CSV">
+			<a href={exportHref} download class="btn btn-ghost btn-xs gap-1" title="Export CSV">
 				<Download size={14} />
 				<span class="hidden sm:inline">Export CSV</span>
 			</a>
