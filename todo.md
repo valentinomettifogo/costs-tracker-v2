@@ -22,7 +22,7 @@
 - [X] nel progetto vecchio i segni erano birbanti, metteli corretti (i costi positivi sono dei rientri)
 - [X] quando cancello un record vorrei un modal di conferma
 
-- [ ] notifiche per le aggiunte
+- [X] notifiche per le aggiunte
 
 ## Miglioramenti
 
