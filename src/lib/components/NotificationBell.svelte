@@ -130,9 +130,9 @@
 	</button>
 
 	{#if isOpen}
-		<!-- Dropdown: z-[51] ensures it sits above the navbar's z-50 -->
+		<!-- Dropdown: z-51 ensures it sits above the navbar's z-50 -->
 		<div
-			class="absolute right-0 z-[51] mt-2 w-80 overflow-hidden rounded-box border border-base-300 bg-base-100 shadow-xl"
+			class="absolute right-0 z-51 mt-2 w-80 overflow-hidden rounded-box border border-base-300 bg-base-100 shadow-xl"
 		>
 			<div class="flex items-center justify-between border-b border-base-300 px-4 py-3">
 				<span class="text-sm font-semibold">Notifications</span>
