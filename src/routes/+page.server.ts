@@ -262,13 +262,15 @@ export const actions: Actions = {
 
 		// Determine sign from category type
 		let isIncome = false;
+		let categoryName: string | null = null;
 		if (category_id) {
 			const { data: catData } = await admin
 				.from('costs_categories')
-				.select('type')
+				.select('type, name')
 				.eq('id', category_id)
 				.maybeSingle();
 			isIncome = catData?.type === 'income';
+			categoryName = catData?.name ?? null;
 		}
 		const invert_sign = form.get('invert_sign') === 'on';
 		const sign = (isIncome ? 1 : -1) * (invert_sign ? -1 : 1);
