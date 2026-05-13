@@ -27,3 +27,20 @@ export const PATCH: RequestHandler = async ({ request, locals }) => {
 
 	return json({ success: true });
 };
+
+export const DELETE: RequestHandler = async ({ locals }) => {
+	const { user } = await locals.safeGetSession();
+	if (!user) throw error(401, 'Unauthorized');
+
+	const admin = getAdminClient();
+	if (!admin) throw error(500, 'Service unavailable');
+
+	const { error: err } = await admin
+		.from('costs_notifications')
+		.delete()
+		.eq('user_id', user.id);
+
+	if (err) throw error(500, err.message);
+
+	return json({ success: true });
+};

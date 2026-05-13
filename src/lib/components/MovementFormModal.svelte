@@ -72,14 +72,10 @@
 </script>
 
 {#if open}
-	<dialog class="modal modal-open modal-bottom sm:modal-middle">
-		<div
-			class="modal-backdrop"
-			role="button"
-			tabindex="0"
-			onclick={closeModal}
-			onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') closeModal(); }}
-		></div>
+	<dialog
+		class="modal modal-open modal-bottom sm:modal-middle"
+		onclick={(e) => { if (e.target === e.currentTarget && !submitting) closeModal(); }}
+	>
 		<div class="modal-box">
 			<h3 class="mb-4 text-lg font-bold">{editing ? 'Edit transaction' : 'New transaction'}</h3>
 

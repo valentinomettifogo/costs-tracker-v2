@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Bell } from 'lucide-svelte';
+	import { Bell, Trash2, CheckCheck } from 'lucide-svelte';
 	import { supabase } from '$lib/supabaseClient';
 	import type { Notification } from '$lib/types';
 
@@ -14,14 +14,18 @@
 	let liveItems = $state<Notification[]>([]);
 	// Optimistic read tracking (IDs marked as read locally before server confirms)
 	let locallyReadIds = $state(new Set<string>());
+	// Set to true optimistically after deleteAll
+	let allDeleted = $state(false);
 	let isOpen = $state(false);
 
 	// Merged view: deduplicate live items vs server data, apply local read state
 	const items = $derived(
-		[
-			...liveItems.filter((n) => !serverNotifications.some((s) => s.id === n.id)),
-			...serverNotifications
-		].map((n) => ({ ...n, read: n.read || locallyReadIds.has(n.id) }))
+		allDeleted
+			? []
+			: [
+					...liveItems.filter((n) => !serverNotifications.some((s) => s.id === n.id)),
+					...serverNotifications
+				].map((n) => ({ ...n, read: n.read || locallyReadIds.has(n.id) }))
 	);
 
 	const unreadCount = $derived(items.filter((n) => !n.read).length);
@@ -55,6 +59,13 @@
 		});
 	}
 
+	async function deleteAll() {
+		if (items.length === 0) return;
+		allDeleted = true;
+		liveItems = [];
+		await fetch('/notifications', { method: 'DELETE' });
+	}
+
 	function toggle() {
 		isOpen = !isOpen;
 		if (isOpen) markAllRead();
@@ -78,6 +89,7 @@
 					filter: `user_id=eq.${userId}`
 				},
 				(payload) => {
+					allDeleted = false;
 					liveItems = [payload.new as Notification, ...liveItems];
 				}
 			)
@@ -123,9 +135,26 @@
 		>
 			<div class="flex items-center justify-between border-b border-base-300 px-4 py-3">
 				<span class="text-sm font-semibold">Notifications</span>
-				{#if unreadCount > 0}
-					<span class="badge badge-primary badge-sm">{unreadCount} new</span>
-				{/if}
+				<div class="flex items-center gap-1">
+					{#if unreadCount > 0}
+						<button
+							class="btn btn-ghost btn-xs gap-1"
+							onclick={markAllRead}
+							title="Mark all as read"
+						>
+							<CheckCheck size={14} />
+						</button>
+					{/if}
+					{#if items.length > 0}
+						<button
+							class="btn btn-ghost btn-xs text-error"
+							onclick={deleteAll}
+							title="Delete all notifications"
+						>
+							<Trash2 size={14} />
+						</button>
+					{/if}
+				</div>
 			</div>
 
 			<ul class="max-h-96 overflow-y-auto">

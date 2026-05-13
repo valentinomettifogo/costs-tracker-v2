@@ -24,14 +24,11 @@
 </script>
 
 {#if open}
-	<dialog class="modal modal-open modal-bottom sm:modal-middle" aria-modal="true">
-		<div
-			class="modal-backdrop"
-			role="button"
-			tabindex="0"
-			onclick={onClose}
-			onkeydown={handleBackdropKeydown}
-		></div>
+	<dialog
+		class="modal modal-open modal-bottom sm:modal-middle"
+		aria-modal="true"
+		onclick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+	>
 		<div class="modal-box">
 			<h3 class="text-lg font-bold">{title}</h3>
 			<p class="mt-2 text-sm text-base-content/70">{message}</p>
