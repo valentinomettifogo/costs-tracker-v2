@@ -36,10 +36,17 @@
 	let idlePercent = $derived(totals.income > 0 ? (idleMoney / totals.income) * 100 : 0);
 
 	// --- KPI PERCENTAGES ---
+	// Numeric values for math (progress bars, comparisons)
+	let percentageValues = $derived({
+		needs: totals.income > 0 ? (totals.needs / totals.income) * 100 : 0,
+		wants: totals.income > 0 ? (totals.wants / totals.income) * 100 : 0,
+		savings: totals.income > 0 ? (totals.savings / totals.income) * 100 : 0
+	});
+	// Formatted strings for display – respects the space locale (IT vs EN)
 	let percentages = $derived({
-		needs: totals.income > 0 ? ((totals.needs / totals.income) * 100).toFixed(1) : '0',
-		wants: totals.income > 0 ? ((totals.wants / totals.income) * 100).toFixed(1) : '0',
-		savings: totals.income > 0 ? ((totals.savings / totals.income) * 100).toFixed(1) : '0'
+		needs: formatPercent(percentageValues.needs),
+		wants: formatPercent(percentageValues.wants),
+		savings: formatPercent(percentageValues.savings)
 	});
 
 	let targets = $derived({
@@ -194,6 +201,14 @@
 		const currency = data.currency ?? 'EUR';
 		return new Intl.NumberFormat(locale, { style: 'currency', currency }).format(value);
 	}
+
+	function formatPercent(value: number): string {
+		const locale = data.format === 'IT' ? 'it-IT' : 'en-US';
+		return new Intl.NumberFormat(locale, {
+			minimumFractionDigits: 1,
+			maximumFractionDigits: 1
+		}).format(value);
+	}
 </script>
 
 <div class="p-3 md:p-6 space-y-4 md:space-y-6 bg-base-200 min-h-screen pb-safe">
@@ -227,7 +242,7 @@
 				<div class="stat bg-base-100 shadow rounded-2xl p-3 md:p-4">
 					<div class="stat-title text-xs">Total Income</div>
 					<div class="stat-value text-success text-lg md:text-2xl break-all">{formatCurrency(totals.income)}</div>
-					<div class="stat-desc text-xs">Idle: <span>{formatCurrency(idleMoney)}</span> ({idlePercent.toFixed(1)}%)</div>
+					<div class="stat-desc text-xs">Idle: <span>{formatCurrency(idleMoney)}</span> ({formatPercent(idlePercent)}%)</div>
 					<div class="w-full mt-2 rounded-full bg-base-200 h-2">
 						<div class="h-2 rounded-full transition-all {idleMoney >= 0 ? 'bg-success' : 'bg-error'}" style="width:{Math.min(Math.max(idlePercent, 0), 100)}%"></div>
 					</div>
@@ -238,7 +253,7 @@
 					<div class="stat-value text-lg md:text-2xl break-all" style="color:{colors.needs}">{formatCurrency(totals.needs)}</div>
 					<div class="stat-desc text-xs">{percentages.needs}% <span class="opacity-50">/ {targets.needs}%</span></div>
 					<div class="w-full mt-2 rounded-full bg-base-200 h-2">
-						<div class="h-2 rounded-full transition-all" style="background-color:{colors.needs};width:{Math.min(Number(percentages.needs) / targets.needs * 100, 100)}%"></div>
+						<div class="h-2 rounded-full transition-all" style="background-color:{colors.needs};width:{Math.min(percentageValues.needs / targets.needs * 100, 100)}%"></div>
 					</div>
 				</div>
 
@@ -247,7 +262,7 @@
 					<div class="stat-value text-lg md:text-2xl break-all" style="color:{colors.wants}">{formatCurrency(totals.wants)}</div>
 					<div class="stat-desc text-xs">{percentages.wants}% <span class="opacity-50">/ {targets.wants}%</span></div>
 					<div class="w-full mt-2 rounded-full bg-base-200 h-2">
-						<div class="h-2 rounded-full transition-all" style="background-color:{colors.wants};width:{Math.min(Number(percentages.wants) / targets.wants * 100, 100)}%"></div>
+						<div class="h-2 rounded-full transition-all" style="background-color:{colors.wants};width:{Math.min(percentageValues.wants / targets.wants * 100, 100)}%"></div>
 					</div>
 				</div>
 
@@ -256,7 +271,7 @@
 					<div class="stat-value text-lg md:text-2xl break-all" style="color:{colors.savings}">{formatCurrency(totals.savings)}</div>
 					<div class="stat-desc text-xs">{percentages.savings}% <span class="opacity-50">/ {targets.savings}%</span></div>
 					<div class="w-full mt-2 rounded-full bg-base-200 h-2">
-						<div class="h-2 rounded-full transition-all" style="background-color:{colors.savings};width:{Math.min(Number(percentages.savings) / targets.savings * 100, 100)}%"></div>
+						<div class="h-2 rounded-full transition-all" style="background-color:{colors.savings};width:{Math.min(percentageValues.savings / targets.savings * 100, 100)}%"></div>
 					</div>
 				</div>
 			</div>
@@ -289,7 +304,7 @@
 					<h3 class="font-bold text-sm">Budget Insight</h3>
 					<div class="text-xs">
 						Wants at {percentages.wants}% (target {targets.wants}%) · Savings at {percentages.savings}% (target {targets.savings}%).
-						{#if Number(percentages.savings) < targets.savings}
+					{#if percentageValues.savings < targets.savings}
 							Consider reducing Wants to boost your savings rate.
 						{/if}
 					</div>

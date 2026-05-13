@@ -2,6 +2,7 @@ import { redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { getAdminClient } from '$lib/server/auth';
 import { scanAvailableYears } from '$lib/server/movements';
+import { parseUrlFilters, buildDateRange } from '$lib/server/filters';
 
 const MAX_STATS_ROWS = 5000;
 
@@ -19,9 +20,6 @@ export type MovementRow = {
 	category_id: string | null;
 	costs_categories: { id: string; name: string; type: string } | null;
 };
-
-const VALID_TYPES = ['needs', 'wants', 'income', 'savings'] as const;
-type CategoryType = (typeof VALID_TYPES)[number];
 
 export const load: PageServerLoad = async ({ locals, url }) => {
 	const { user } = await locals.safeGetSession();
@@ -47,7 +45,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			month: null as number | null,
 			ytd: false,
 			categoryId: null as string | null,
-			type: null as CategoryType | null,
+			type: null as 'needs' | 'wants' | 'income' | 'savings' | null,
 			query: '',
 			tag: null as string | null
 		},
@@ -65,81 +63,39 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 
 	if (!conn) return empty;
 
-	const { data: space } = await locals.supabase
-		.from('costs_spaces')
-		.select('currency, format, color_needs, color_wants, color_savings, target_needs, target_wants, target_savings')
-		.eq('id', activeSpaceId)
-		.single();
+	const admin = getAdminClient();
+	const movementsClient = admin ?? locals.supabase;
 
-	const adminData = getAdminClient();
-	const movementsClient = adminData ?? locals.supabase;
+	const [{ data: space }, { data: categories }, availableYears] = await Promise.all([
+		locals.supabase
+			.from('costs_spaces')
+			.select('currency, format, color_needs, color_wants, color_savings, target_needs, target_wants, target_savings')
+			.eq('id', activeSpaceId)
+			.single(),
+		locals.supabase
+			.from('costs_categories')
+			.select('id, name, type')
+			.eq('space_id', activeSpaceId)
+			.order('name'),
+		scanAvailableYears(movementsClient, activeSpaceId)
+	]);
 
-	const { data: categories } = await locals.supabase
-		.from('costs_categories')
-		.select('id, name, type')
-		.eq('space_id', activeSpaceId)
-		.order('name');
-
-	const availableYears = await scanAvailableYears(movementsClient, activeSpaceId);
-
-	// Parse URL filters
-	const yearRaw = url.searchParams.get('year')?.trim() ?? '';
-	const monthRaw = url.searchParams.get('month')?.trim() ?? '';
-	const hasYearParam = url.searchParams.has('year');
-	const hasMonthParam = url.searchParams.has('month');
-	const ytd = monthRaw === 'ytd' || (!hasYearParam && !hasMonthParam);
-	const categoryId = url.searchParams.get('category')?.trim() || null;
-	const query = (url.searchParams.get('q')?.trim().toLowerCase() ?? '').slice(0, 100);
-	const tag = (url.searchParams.get('tag')?.trim() ?? '').slice(0, 40) || null;
-
-	const typeRaw = url.searchParams.get('type')?.trim().toLowerCase() ?? '';
-	const type: CategoryType | null = (VALID_TYPES as readonly string[]).includes(typeRaw)
-		? (typeRaw as CategoryType)
-		: null;
-
-	const parsedYear = Number.parseInt(yearRaw, 10);
-	const parsedMonth = Number.parseInt(monthRaw, 10);
+	const filters = parseUrlFilters(url, {
+		availableYears,
+		defaultYtd: true,
+		fallbackToFirstAvailableYear: true
+	});
 
 	const today = new Date();
-	const todayIso = today.toISOString().slice(0, 10);
-	const currentYear = today.getUTCFullYear();
+	const { fromDate, toDate } = buildDateRange(
+		filters.year,
+		filters.month,
+		filters.ytd,
+		today.getUTCFullYear(),
+		today.toISOString().slice(0, 10)
+	);
 
-	// Default to current year; for stats we default to full year (no specific month)
-	const useYearDefault = !hasYearParam;
-	let year = Number.isInteger(parsedYear) && parsedYear >= 2000 && parsedYear <= 2100
-		? parsedYear
-		: null;
-
-	if (useYearDefault) {
-		year = availableYears.includes(currentYear) ? currentYear : (availableYears[0] ?? null);
-	}
-	if (year && !availableYears.includes(year)) year = null;
-
-	const month =
-		ytd || !year
-			? null
-			: Number.isInteger(parsedMonth) && parsedMonth >= 1 && parsedMonth <= 12
-				? parsedMonth
-				: null;
-
-	let fromDate: string | null = null;
-	let toDate: string | null = null;
-
-	if (ytd) {
-		const ytdYear = year ?? currentYear;
-		fromDate = `${ytdYear}-01-01`;
-		toDate = ytdYear === currentYear ? todayIso : `${ytdYear}-12-31`;
-	} else if (year && month) {
-		const monthPadded = String(month).padStart(2, '0');
-		const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
-		fromDate = `${year}-${monthPadded}-01`;
-		toDate = `${year}-${monthPadded}-${String(lastDay).padStart(2, '0')}`;
-	} else if (year) {
-		fromDate = `${year}-01-01`;
-		toDate = `${year}-12-31`;
-	}
-
-	const categoryRelation = type ? 'costs_categories!inner' : 'costs_categories';
+	const categoryRelation = filters.type ? 'costs_categories!inner' : 'costs_categories';
 
 	let movementsQuery = movementsClient
 		.from('costs_movements')
@@ -149,14 +105,12 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 
 	if (fromDate) movementsQuery = movementsQuery.gte('date', fromDate);
 	if (toDate) movementsQuery = movementsQuery.lte('date', toDate);
-	if (categoryId) movementsQuery = movementsQuery.eq('category_id', categoryId);
-	if (type) movementsQuery = movementsQuery.eq('costs_categories.type', type);
-	if (query) movementsQuery = movementsQuery.ilike('description', `%${query}%`);
-	if (tag) movementsQuery = movementsQuery.contains('tags', [tag]);
+	if (filters.categoryId) movementsQuery = movementsQuery.eq('category_id', filters.categoryId);
+	if (filters.type) movementsQuery = movementsQuery.eq('costs_categories.type', filters.type);
+	if (filters.query) movementsQuery = movementsQuery.ilike('description', `%${filters.query}%`);
+	if (filters.tag) movementsQuery = movementsQuery.contains('tags', [filters.tag]);
 
 	const { data: movements } = await movementsQuery.range(0, MAX_STATS_ROWS - 1);
-
-	const filterParams = new URLSearchParams(url.searchParams);
 
 	return {
 		movements: (movements as unknown as MovementRow[]) ?? [],
@@ -171,15 +125,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		targetNeeds: space?.target_needs ?? 50,
 		targetWants: space?.target_wants ?? 30,
 		targetSavings: space?.target_savings ?? 20,
-		filters: {
-			year,
-			month,
-			ytd,
-			categoryId,
-			type,
-			query,
-			tag
-		},
-		filterQueryString: filterParams.toString()
+		filters,
+		filterQueryString: new URLSearchParams(url.searchParams).toString()
 	};
 };

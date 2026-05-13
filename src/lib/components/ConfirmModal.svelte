@@ -18,13 +18,6 @@
 		onConfirm = () => {},
 		onCancel = () => {}
 	}: Props = $props();
-
-	function handleBackdropKeydown(event: KeyboardEvent) {
-		if (event.key === 'Enter' || event.key === ' ') {
-			event.preventDefault();
-			onCancel();
-		}
-	}
 </script>
 
 {#if open}

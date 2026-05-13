@@ -66,12 +66,21 @@
 		await fetch('/notifications', { method: 'DELETE' });
 	}
 
+	// DOM reference used for the click-outside check
+	let containerEl = $state<HTMLDivElement | undefined>();
+
 	function toggle() {
 		isOpen = !isOpen;
 		if (isOpen) markAllRead();
 	}
 
-	function handleKeydown(e: KeyboardEvent) {
+	function handleWindowClick(e: MouseEvent) {
+		if (isOpen && containerEl && !containerEl.contains(e.target as Node)) {
+			isOpen = false;
+		}
+	}
+
+	function handleWindowKeydown(e: KeyboardEvent) {
 		if (e.key === 'Escape') isOpen = false;
 	}
 
@@ -101,9 +110,9 @@
 	});
 </script>
 
-<svelte:window on:keydown={handleKeydown} />
+<svelte:window onclick={handleWindowClick} onkeydown={handleWindowKeydown} />
 
-<div class="relative">
+<div class="relative" bind:this={containerEl}>
 	<button
 		class="btn btn-circle btn-ghost relative"
 		onclick={toggle}
@@ -121,17 +130,9 @@
 	</button>
 
 	{#if isOpen}
-		<!-- Backdrop -->
-		<button
-			class="fixed inset-0 z-40 cursor-default"
-			onclick={() => (isOpen = false)}
-			aria-label="Close notifications"
-			tabindex="-1"
-		></button>
-
-		<!-- Dropdown -->
+		<!-- Dropdown: z-[51] ensures it sits above the navbar's z-50 -->
 		<div
-			class="absolute right-0 z-50 mt-2 w-80 overflow-hidden rounded-box border border-base-300 bg-base-100 shadow-xl"
+			class="absolute right-0 z-[51] mt-2 w-80 overflow-hidden rounded-box border border-base-300 bg-base-100 shadow-xl"
 		>
 			<div class="flex items-center justify-between border-b border-base-300 px-4 py-3">
 				<span class="text-sm font-semibold">Notifications</span>

@@ -14,13 +14,6 @@
 		buttonLabel = 'Close',
 		onClose = () => {}
 	}: Props = $props();
-
-	function handleBackdropKeydown(event: KeyboardEvent) {
-		if (event.key === 'Enter' || event.key === ' ') {
-			event.preventDefault();
-			onClose();
-		}
-	}
 </script>
 
 {#if open}

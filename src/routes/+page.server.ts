@@ -2,6 +2,7 @@ import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { getAdminClient } from '$lib/server/auth';
 import { scanAvailableYears } from '$lib/server/movements';
+import { parseUrlFilters, buildDateRange } from '$lib/server/filters';
 
 const DEFAULT_LIMIT = 20;
 const PAGE_STEP = 20;
@@ -40,9 +41,6 @@ export type MovementRow = {
 	costs_categories: { id: string; name: string; type: string } | null;
 };
 
-const VALID_TYPES = ['needs', 'wants', 'income', 'savings'] as const;
-type CategoryType = (typeof VALID_TYPES)[number];
-
 export const load: PageServerLoad = async ({ locals, url }) => {
 	const { user } = await locals.safeGetSession();
 
@@ -60,7 +58,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			month: null as number | null,
 			ytd: false,
 			categoryId: null as string | null,
-			type: null as CategoryType | null,
+			type: null as 'needs' | 'wants' | 'income' | 'savings' | null,
 			query: '',
 			tag: null as string | null
 		},
@@ -72,7 +70,6 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	const activeSpaceId = (user.user_metadata?.active_space_id as string | undefined) ?? null;
 	if (!activeSpaceId) return empty;
 
-	// Verifica accesso
 	const { data: conn } = await locals.supabase
 		.from('costs_spaces_connections')
 		.select('space_id')
@@ -90,18 +87,23 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 
 	if (!space) return empty;
 
-	const [{ data: categories }, adminData] = await Promise.all([
+	// Resolve admin client first (sync), then parallelise all remaining I/O
+	const admin = getAdminClient();
+	const movementsClient = admin ?? locals.supabase;
+
+	const [{ data: categories }, availableYears] = await Promise.all([
 		locals.supabase
 			.from('costs_categories')
 			.select('id, name, type, space_id')
 			.eq('space_id', activeSpaceId)
 			.order('name'),
-		Promise.resolve(getAdminClient())
+		scanAvailableYears(movementsClient, activeSpaceId)
 	]);
 
+	// Build members display-name map (N parallel auth lookups)
 	const membersMap: Record<string, string> = {};
-	if (adminData) {
-		const { data: connections } = await adminData
+	if (admin) {
+		const { data: connections } = await admin
 			.from('costs_spaces_connections')
 			.select('user_id')
 			.eq('space_id', activeSpaceId);
@@ -109,7 +111,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		if (connections) {
 			await Promise.all(
 				connections.map(async (c: { user_id: string }) => {
-					const { data } = await adminData.auth.admin.getUserById(c.user_id);
+					const { data } = await admin.auth.admin.getUserById(c.user_id);
 					const u = data.user;
 					membersMap[c.user_id] =
 						u?.user_metadata?.display_name ??
@@ -127,66 +129,21 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			? DEFAULT_LIMIT
 			: Math.min(limitParam, MAX_LIMIT);
 
-	const yearRaw = url.searchParams.get('year')?.trim() ?? '';
-	const monthRaw = url.searchParams.get('month')?.trim() ?? '';
-	const hasYearParam = url.searchParams.has('year');
-	const hasMonthParam = url.searchParams.has('month');
-	const ytd = monthRaw === 'ytd';
-	const categoryId = url.searchParams.get('category')?.trim() || null;
-	const query = (url.searchParams.get('q')?.trim().toLowerCase() ?? '').slice(0, 100);
-	const tag = (url.searchParams.get('tag')?.trim() ?? '').slice(0, 40) || null;
-	const typeRaw = url.searchParams.get('type')?.trim().toLowerCase() ?? '';
-	const type: CategoryType | null = (VALID_TYPES as readonly string[]).includes(typeRaw) ? (typeRaw as CategoryType) : null;
-
-	const parsedYear = Number.parseInt(yearRaw, 10);
-	const parsedMonth = Number.parseInt(monthRaw, 10);
-	let year = Number.isInteger(parsedYear) && parsedYear >= 2000 && parsedYear <= 2100 ? parsedYear : null;
-	const month = ytd ? null : (Number.isInteger(parsedMonth) && parsedMonth >= 1 && parsedMonth <= 12 ? parsedMonth : null);
+	const filters = parseUrlFilters(url, {
+		availableYears,
+		defaultToCurrentPeriod: true
+	});
 
 	const today = new Date();
-	const todayIso = today.toISOString().slice(0, 10);
-	const currentYear = today.getUTCFullYear();
-	const currentMonth = today.getUTCMonth() + 1;
+	const { fromDate, toDate } = buildDateRange(
+		filters.year,
+		filters.month,
+		filters.ytd,
+		today.getUTCFullYear(),
+		today.toISOString().slice(0, 10)
+	);
 
-	// Usa admin client per bypassare RLS nel join costs_categories
-	const movementsClient = adminData ?? locals.supabase;
-
-	const availableYears = await scanAvailableYears(movementsClient, activeSpaceId);
-	const useCurrentPeriodDefaults = !hasYearParam && !hasMonthParam;
-	if (useCurrentPeriodDefaults) {
-		year = availableYears.includes(currentYear) ? currentYear : year;
-	}
-
-	if (year && !availableYears.includes(year)) {
-		year = null;
-	}
-
-	const monthForFiltering = ytd
-		? null
-		: year
-			? useCurrentPeriodDefaults && !hasMonthParam
-				? currentMonth
-				: month
-			: null;
-
-	let fromDate: string | null = null;
-	let toDate: string | null = null;
-
-	if (ytd) {
-		const ytdYear = year ?? currentYear;
-		fromDate = `${ytdYear}-01-01`;
-		toDate = ytdYear === currentYear ? todayIso : `${ytdYear}-12-31`;
-	} else if (year && monthForFiltering) {
-		const monthPadded = String(monthForFiltering).padStart(2, '0');
-		const lastDay = new Date(Date.UTC(year, monthForFiltering, 0)).getUTCDate();
-		fromDate = `${year}-${monthPadded}-01`;
-		toDate = `${year}-${monthPadded}-${String(lastDay).padStart(2, '0')}`;
-	} else if (year) {
-		fromDate = `${year}-01-01`;
-		toDate = `${year}-12-31`;
-	}
-
-	const categoryRelation = type ? 'costs_categories!inner' : 'costs_categories';
+	const categoryRelation = filters.type ? 'costs_categories!inner' : 'costs_categories';
 
 	let movementsQuery = movementsClient
 		.from('costs_movements')
@@ -199,10 +156,10 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 
 	if (fromDate) movementsQuery = movementsQuery.gte('date', fromDate);
 	if (toDate) movementsQuery = movementsQuery.lte('date', toDate);
-	if (categoryId) movementsQuery = movementsQuery.eq('category_id', categoryId);
-	if (type) movementsQuery = movementsQuery.eq('costs_categories.type', type);
-	if (query) movementsQuery = movementsQuery.ilike('description', `%${query}%`);
-	if (tag) movementsQuery = movementsQuery.contains('tags', [tag]);
+	if (filters.categoryId) movementsQuery = movementsQuery.eq('category_id', filters.categoryId);
+	if (filters.type) movementsQuery = movementsQuery.eq('costs_categories.type', filters.type);
+	if (filters.query) movementsQuery = movementsQuery.ilike('description', `%${filters.query}%`);
+	if (filters.tag) movementsQuery = movementsQuery.contains('tags', [filters.tag]);
 
 	const { data: movements, count } = await movementsQuery.range(0, limit - 1);
 
@@ -219,15 +176,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		totalMovements: count ?? 0,
 		limit,
 		pageStep: PAGE_STEP,
-		filters: {
-			year,
-			month: monthForFiltering,
-			ytd,
-			categoryId,
-			type,
-			query,
-			tag
-		},
+		filters,
 		filterQueryString: filterParams.toString()
 	};
 };
