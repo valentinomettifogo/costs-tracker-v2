@@ -338,6 +338,7 @@ export const actions: Actions = {
 					actor_name: actorName,
 					amount: finalAmount,
 					description,
+					category_name: categoryName,
 					space_name: spaceData.name
 				}));
 				await admin.from('costs_notifications').insert(notificationRows);

@@ -141,8 +141,8 @@
 								: ''}"
 						>
 							<div class="flex items-start justify-between gap-2">
-								<div class="min-w-0 flex-1">
-									<p class="truncate text-sm">
+								<div class="flex-1">
+									<p class="text-sm">
 										<span class="font-semibold">{notif.actor_name}</span>
 										added
 										<span
@@ -152,14 +152,16 @@
 										>
 											{formatAmount(notif.amount)}
 										</span>
-										{#if notif.description}
-											<span class="text-base-content/70">· {notif.description}</span>
-										{/if}
 									</p>
-									<p class="mt-0.5 text-xs text-base-content/50">
+									{#if notif.category_name}
+										<p class="mt-0.5 text-xs text-base-content/60">
+											in <span class="font-medium">{notif.category_name}</span>
+										</p>
+									{/if}
+									<p class="mt-0.5 text-xs text-base-content/60">
 										in <span class="font-medium">{notif.space_name}</span>
-										· {relativeTime(notif.created_at)}
 									</p>
+									<p class="mt-0.5 text-xs text-base-content/40">{relativeTime(notif.created_at)}</p>
 								</div>
 								{#if !notif.read}
 									<span class="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary"></span>

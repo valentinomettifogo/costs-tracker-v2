@@ -7,6 +7,7 @@ export interface Notification {
 	actor_name: string;
 	amount: number;
 	description: string | null;
+	category_name: string | null;
 	space_name: string;
 	read: boolean;
 	created_at: string;

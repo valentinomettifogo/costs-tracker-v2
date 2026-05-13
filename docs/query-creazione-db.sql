@@ -106,6 +106,7 @@ CREATE TABLE costs_notifications (
     actor_name TEXT NOT NULL,
     amount NUMERIC(10, 2) NOT NULL,
     description TEXT,
+    category_name TEXT,
     space_name TEXT NOT NULL,
     read BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
