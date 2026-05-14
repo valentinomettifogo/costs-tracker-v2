@@ -44,7 +44,7 @@
 
 <nav class="relative z-50 border-b border-base-300 bg-base-100/90 backdrop-blur">
 	<!-- Mobile: solo avatar/login fisso in alto a destra -->
-	<div class="fixed right-4 top-3 z-50 flex items-center gap-1 md:hidden">
+	<div class="fixed right-4 top-3 z-50 flex items-center gap-1 md:hidden pt-4">
 		{#if user}
 			<NotificationBell {notifications} {userId} />
 			<div class="dropdown dropdown-end">
@@ -84,7 +84,7 @@
 	</div>
 
 	<!-- Desktop: navbar completa -->
-	<div class="navbar mx-auto hidden max-w-6xl px-4 md:flex">
+	<div class="navbar mx-auto hidden max-w-6xl px-4 md:flex pt-3">
 		<div class="navbar-start">
 			<a class="btn btn-ghost px-2" href="/">
 				<img src="/logo.png" alt="Costs Tracker" class="h-10 w-auto" />
