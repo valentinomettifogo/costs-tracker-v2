@@ -1,7 +1,7 @@
 import { redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { getAdminClient } from '$lib/server/auth';
-import { scanAvailableYears } from '$lib/server/movements';
+import { scanAvailableYears, withCache } from '$lib/server/movements';
 import { parseUrlFilters, buildDateRange } from '$lib/server/filters';
 
 const MAX_STATS_ROWS = 5000;
@@ -54,31 +54,46 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 
 	if (!activeSpaceId) return empty;
 
-	const { data: conn } = await locals.supabase
-		.from('costs_spaces_connections')
-		.select('space_id')
-		.eq('space_id', activeSpaceId)
-		.eq('user_id', user.id)
-		.maybeSingle();
-
-	if (!conn) return empty;
-
 	const admin = getAdminClient();
 	const movementsClient = admin ?? locals.supabase;
 
-	const [{ data: space }, { data: categories }, availableYears] = await Promise.all([
+	type StatsSpaceData = {
+		currency: string; format: string;
+		color_needs: string; color_wants: string; color_savings: string;
+		target_needs: number; target_wants: number; target_savings: number;
+	};
+
+	// Run conn-check + all stable queries in parallel; cache space/categories/years
+	// so filter changes only trigger the movements query.
+	const [connResult, space, categories, availableYears] = await Promise.all([
 		locals.supabase
-			.from('costs_spaces')
-			.select('currency, format, color_needs, color_wants, color_savings, target_needs, target_wants, target_savings')
-			.eq('id', activeSpaceId)
-			.single(),
-		locals.supabase
-			.from('costs_categories')
-			.select('id, name, type')
+			.from('costs_spaces_connections')
+			.select('space_id')
 			.eq('space_id', activeSpaceId)
-			.order('name'),
-		scanAvailableYears(movementsClient, activeSpaceId)
+			.eq('user_id', user.id)
+			.maybeSingle(),
+		withCache<StatsSpaceData | null>(`stats-space:${activeSpaceId}`, 60_000, async () => {
+			const { data } = await locals.supabase
+				.from('costs_spaces')
+				.select('currency, format, color_needs, color_wants, color_savings, target_needs, target_wants, target_savings')
+				.eq('id', activeSpaceId)
+				.single();
+			return data as StatsSpaceData | null;
+		}),
+		withCache<Category[]>(`stats-categories:${activeSpaceId}`, 60_000, async () => {
+			const { data } = await locals.supabase
+				.from('costs_categories')
+				.select('id, name, type')
+				.eq('space_id', activeSpaceId)
+				.order('name');
+			return (data as Category[]) ?? [];
+		}),
+		withCache<number[]>(`years:${activeSpaceId}`, 60_000, () =>
+			scanAvailableYears(movementsClient, activeSpaceId)
+		)
 	]);
+
+	if (!connResult.data) return empty;
 
 	const filters = parseUrlFilters(url, {
 		availableYears,

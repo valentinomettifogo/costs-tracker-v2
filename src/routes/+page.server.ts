@@ -1,7 +1,7 @@
 import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { getAdminClient } from '$lib/server/auth';
-import { scanAvailableYears } from '$lib/server/movements';
+import { scanAvailableYears, withCache } from '$lib/server/movements';
 import { parseUrlFilters, buildDateRange } from '$lib/server/filters';
 
 const DEFAULT_LIMIT = 20;
@@ -79,49 +79,58 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 
 	if (!conn) return empty;
 
-	const { data: space } = await locals.supabase
-		.from('costs_spaces')
-		.select('id, name, currency, format, owner_id, color_needs, color_wants, color_savings, target_needs, target_wants, target_savings')
-		.eq('id', activeSpaceId)
-		.single();
-
-	if (!space) return empty;
-
-	// Resolve admin client first (sync), then parallelise all remaining I/O
+	// Resolve admin client (sync), then run space + categories + years + membersMap
+	// all in parallel. Stable data is cached for 60 s so filter changes only
+	// trigger the movements query, not the full waterfall.
 	const admin = getAdminClient();
 	const movementsClient = admin ?? locals.supabase;
 
-	const [{ data: categories }, availableYears] = await Promise.all([
-		locals.supabase
-			.from('costs_categories')
-			.select('id, name, type, space_id')
-			.eq('space_id', activeSpaceId)
-			.order('name'),
-		scanAvailableYears(movementsClient, activeSpaceId)
+	const [space, categories, availableYears, membersMap] = await Promise.all([
+		withCache<Space | null>(`home-space:${activeSpaceId}`, 60_000, async () => {
+			const { data } = await locals.supabase
+				.from('costs_spaces')
+				.select('id, name, currency, format, owner_id, color_needs, color_wants, color_savings, target_needs, target_wants, target_savings')
+				.eq('id', activeSpaceId)
+				.single();
+			return data as Space | null;
+		}),
+		withCache<Category[]>(`home-categories:${activeSpaceId}`, 60_000, async () => {
+			const { data } = await locals.supabase
+				.from('costs_categories')
+				.select('id, name, type, space_id')
+				.eq('space_id', activeSpaceId)
+				.order('name');
+			return (data as Category[]) ?? [];
+		}),
+		withCache<number[]>(`years:${activeSpaceId}`, 60_000, () =>
+			scanAvailableYears(movementsClient, activeSpaceId)
+		),
+		admin
+			? withCache<Record<string, string>>(`membersMap:${activeSpaceId}`, 5 * 60_000, async () => {
+					const map: Record<string, string> = {};
+					const { data: connections } = await admin
+						.from('costs_spaces_connections')
+						.select('user_id')
+						.eq('space_id', activeSpaceId);
+					if (connections) {
+						await Promise.all(
+							connections.map(async (c: { user_id: string }) => {
+								const { data } = await admin.auth.admin.getUserById(c.user_id);
+								const u = data.user;
+								map[c.user_id] =
+									u?.user_metadata?.display_name ??
+									u?.user_metadata?.full_name ??
+									u?.email ??
+									c.user_id.slice(0, 8);
+							})
+						);
+					}
+					return map;
+				})
+			: Promise.resolve({} as Record<string, string>)
 	]);
 
-	// Build members display-name map (N parallel auth lookups)
-	const membersMap: Record<string, string> = {};
-	if (admin) {
-		const { data: connections } = await admin
-			.from('costs_spaces_connections')
-			.select('user_id')
-			.eq('space_id', activeSpaceId);
-
-		if (connections) {
-			await Promise.all(
-				connections.map(async (c: { user_id: string }) => {
-					const { data } = await admin.auth.admin.getUserById(c.user_id);
-					const u = data.user;
-					membersMap[c.user_id] =
-						u?.user_metadata?.display_name ??
-						u?.user_metadata?.full_name ??
-						u?.email ??
-						c.user_id.slice(0, 8);
-				})
-			);
-		}
-	}
+	if (!space) return empty;
 
 	const limitParam = parseInt(url.searchParams.get('limit') ?? String(DEFAULT_LIMIT), 10);
 	const limit =

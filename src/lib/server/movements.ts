@@ -1,5 +1,21 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
+// ─── In-memory cache ──────────────────────────────────────────────────────────
+// Module-level Map persists across requests in the same server process,
+// eliminating redundant Supabase roundtrips on every filter change.
+interface CacheEntry<T> { data: T; expiresAt: number }
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const _cache = new Map<string, CacheEntry<any>>();
+
+export async function withCache<T>(key: string, ttlMs: number, fn: () => Promise<T>): Promise<T> {
+	const now = Date.now();
+	const entry = _cache.get(key) as CacheEntry<T> | undefined;
+	if (entry && entry.expiresAt > now) return entry.data;
+	const data = await fn();
+	_cache.set(key, { data, expiresAt: now + ttlMs });
+	return data;
+}
+
 /**
  * Returns a sorted list of distinct years (descending) present in the space's
  * movements. Uses 2 parallel queries on the min/max dates instead of paginating

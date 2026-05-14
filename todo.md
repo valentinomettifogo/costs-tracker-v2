@@ -13,6 +13,7 @@
 - [ ] Bigger and bolder KPI titles
 - [X] actual % in bold
 - [ ] Choose multiple categories (even all -1)
+- [ ] chiudi la casella delle selezioni
 - [X] Editable target%
 - [X] Timing improvement when adding data
 - [X] saving color is yellow, not the warning color
