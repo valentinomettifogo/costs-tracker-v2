@@ -44,7 +44,7 @@
 
 <nav class="relative z-50 border-b border-base-300 bg-base-100/90 backdrop-blur">
 	<!-- Mobile: solo avatar/login fisso in alto a destra -->
-	<div class="fixed right-4 top-3 z-50 flex items-center gap-1 md:hidden">
+	<div class="fixed right-4 z-50 flex items-center gap-1 md:hidden" style="top: calc(0.75rem + env(safe-area-inset-top, 0px))">
 		{#if user}
 			<NotificationBell {notifications} {userId} />
 			<div class="dropdown dropdown-end">
@@ -153,7 +153,7 @@
 </nav>
 
 <!-- Mobile: bottom navigation bar -->
-<nav class="fixed inset-x-0 bottom-0 z-40 border-t border-base-300 bg-base-100 md:hidden">
+<nav class="fixed inset-x-0 bottom-0 z-40 border-t border-base-300 bg-base-100 md:hidden" style="padding-bottom: env(safe-area-inset-bottom, 0px)">
 	{#if user}
 		<ul class="grid h-16 items-stretch text-xs font-medium {isAdmin ? 'grid-cols-3' : 'grid-cols-2'}">
 			<li>
