@@ -1,5 +1,8 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type CatEntry = { id: string; name: string; type: string; space_id: string };
+
 // ─── In-memory cache ──────────────────────────────────────────────────────────
 // Module-level Map persists across requests in the same server process,
 // eliminating redundant Supabase roundtrips on every filter change.
@@ -55,4 +58,37 @@ export async function scanAvailableYears(
 	const years: number[] = [];
 	for (let y = maxYear; y >= minYear; y--) years.push(y);
 	return years;
+}
+
+/**
+ * Resolves the sign multiplier (+1 or -1) and display name for a category.
+ * Uses the shared in-memory cache so that actions on the same server process
+ * avoid an extra Supabase round-trip when the cache is warm from the page load.
+ */
+export async function resolveCategorySign(
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	client: SupabaseClient<any>,
+	spaceId: string,
+	categoryId: string | null
+): Promise<{ sign: number; categoryName: string | null }> {
+	if (!categoryId) return { sign: -1, categoryName: null };
+
+	const categories = await withCache<CatEntry[]>(
+		`home-categories:${spaceId}`,
+		60_000,
+		async () => {
+			const { data } = await client
+				.from('costs_categories')
+				.select('id, name, type, space_id')
+				.eq('space_id', spaceId)
+				.order('name');
+			return (data as CatEntry[]) ?? [];
+		}
+	);
+
+	const cat = categories.find((c) => c.id === categoryId);
+	return {
+		sign: cat?.type === 'income' ? 1 : -1,
+		categoryName: cat?.name ?? null
+	};
 }

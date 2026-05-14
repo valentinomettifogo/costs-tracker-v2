@@ -1,7 +1,7 @@
 import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { getAdminClient } from '$lib/server/auth';
-import { scanAvailableYears, withCache } from '$lib/server/movements';
+import { scanAvailableYears, withCache, resolveCategorySign } from '$lib/server/movements';
 import { parseUrlFilters, buildDateRange } from '$lib/server/filters';
 
 const DEFAULT_LIMIT = 20;
@@ -190,64 +190,112 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	};
 };
 
+// ─── Shared action utilities ──────────────────────────────────────────────────
+
+async function getAuthContext(locals: App.Locals) {
+	const { user } = await locals.safeGetSession();
+	const activeSpaceId = (user?.user_metadata?.active_space_id as string | undefined) ?? null;
+	return { user: user ?? null, activeSpaceId };
+}
+
+function parseMovementForm(formData: FormData) {
+	const amount = parseFloat(String(formData.get('amount') ?? ''));
+	const date = String(formData.get('date') ?? '').trim();
+	const description = String(formData.get('description') ?? '').trim() || null;
+	const category_id = String(formData.get('category_id') ?? '').trim() || null;
+	const expense_user_id = String(formData.get('expense_user_id') ?? '').trim() || null;
+	const tagsRaw = String(formData.get('tags') ?? '').trim();
+	const invert_sign = formData.get('invert_sign') === 'on';
+	return { amount, date, description, category_id, expense_user_id, tagsRaw, invert_sign };
+}
+
+type AdminClient = NonNullable<ReturnType<typeof getAdminClient>>;
+
+async function dispatchCreationNotifications(
+	admin: AdminClient,
+	payload: {
+		userId: string;
+		userMeta: Record<string, unknown>;
+		userEmail: string | undefined;
+		spaceId: string;
+		movementId: string | null;
+		amount: number;
+		description: string | null;
+		categoryName: string | null;
+	}
+) {
+	const actorName =
+		(payload.userMeta.full_name as string | undefined) ??
+		(payload.userMeta.name as string | undefined) ??
+		(payload.userMeta.display_name as string | undefined) ??
+		payload.userEmail?.split('@')[0] ??
+		'Someone';
+
+	const [{ data: spaceData }, { data: members }] = await Promise.all([
+		admin.from('costs_spaces').select('name').eq('id', payload.spaceId).single(),
+		admin
+			.from('costs_spaces_connections')
+			.select('user_id')
+			.eq('space_id', payload.spaceId)
+			.neq('user_id', payload.userId)
+	]);
+
+	if (!spaceData || !members?.length) return;
+
+	const rows = (members as Array<{ user_id: string }>).map((m) => ({
+		user_id: m.user_id,
+		space_id: payload.spaceId,
+		movement_id: payload.movementId,
+		actor_id: payload.userId,
+		actor_name: actorName,
+		amount: payload.amount,
+		description: payload.description,
+		category_name: payload.categoryName,
+		space_name: spaceData.name
+	}));
+	await admin.from('costs_notifications').insert(rows);
+}
+
+// ─── Actions ─────────────────────────────────────────────────────────────────
+
 export const actions: Actions = {
 	createMovement: async ({ request, locals }) => {
-		const { user } = await locals.safeGetSession();
+		const { user, activeSpaceId } = await getAuthContext(locals);
 		if (!user) throw redirect(303, '/login');
-
-		const activeSpaceId = (user.user_metadata?.active_space_id as string | undefined) ?? null;
 		if (!activeSpaceId) return fail(400, { movementError: 'No active space.' });
 
-		const form = await request.formData();
-		const amountRaw = String(form.get('amount') ?? '');
-		const date = String(form.get('date') ?? '').trim();
-		const description = String(form.get('description') ?? '').trim() || null;
-		const category_id = String(form.get('category_id') ?? '').trim() || null;
-		const expense_user_id = String(form.get('expense_user_id') ?? '').trim() || null;
-		const tagsRaw = String(form.get('tags') ?? '').trim();
-		const recurring = form.get('recurring') === 'on';
-		const inputTags = tagsRaw ? tagsRaw.split(',').map((t) => t.trim()).filter(Boolean) : [];
-		const tagsSet = new Set(inputTags);
-		if (recurring) tagsSet.add('recurring');
-		const tags = tagsSet.size > 0 ? Array.from(tagsSet) : null;
+		const formData = await request.formData();
+		const { amount, date, description, category_id, expense_user_id, tagsRaw, invert_sign } =
+			parseMovementForm(formData);
+		const recurring = formData.get('recurring') === 'on';
 
-		const amount = parseFloat(amountRaw);
 		if (isNaN(amount) || amount <= 0 || !date)
 			return fail(400, { movementError: 'Amount (positive) and date are required.' });
 
 		const admin = getAdminClient();
 		if (!admin) return fail(500, { movementError: 'Service unavailable.' });
 
-		// Determine sign from category type
-		let isIncome = false;
-		let categoryName: string | null = null;
-		if (category_id) {
-			const { data: catData } = await admin
-				.from('costs_categories')
-				.select('type, name')
-				.eq('id', category_id)
-				.maybeSingle();
-			isIncome = catData?.type === 'income';
-			categoryName = catData?.name ?? null;
-		}
-		const invert_sign = form.get('invert_sign') === 'on';
-		const sign = (isIncome ? 1 : -1) * (invert_sign ? -1 : 1);
-		const finalAmount = Math.abs(amount) * sign;
+		const { sign, categoryName } = await resolveCategorySign(admin, activeSpaceId, category_id);
+		const finalAmount = Math.abs(amount) * sign * (invert_sign ? -1 : 1);
+
+		const inputTags = tagsRaw ? tagsRaw.split(',').map((t) => t.trim()).filter(Boolean) : [];
+		const tagsSet = new Set(inputTags);
+		if (recurring) tagsSet.add('recurring');
+		const tags = tagsSet.size > 0 ? Array.from(tagsSet) : null;
 
 		const [yearRaw, monthRaw, dayRaw] = date.split('-');
 		const year = Number(yearRaw);
 		const month = Number(monthRaw);
 		const day = Number(dayRaw);
-		if (!year || !month || !day) {
-			return fail(400, { movementError: 'Invalid date.' });
-		}
+		if (!year || !month || !day) return fail(400, { movementError: 'Invalid date.' });
 
 		const dates = recurring
 			? Array.from({ length: 12 - month + 1 }, (_, i) => {
 					const nextMonth = month + i;
-					const lastDayInMonth = new Date(Date.UTC(year, nextMonth, 0)).getUTCDate();
-					const recurringDay = Math.min(day, lastDayInMonth);
-					return new Date(Date.UTC(year, nextMonth - 1, recurringDay)).toISOString().slice(0, 10);
+					const lastDay = new Date(Date.UTC(year, nextMonth, 0)).getUTCDate();
+					return new Date(Date.UTC(year, nextMonth - 1, Math.min(day, lastDay)))
+						.toISOString()
+						.slice(0, 10);
 				})
 			: [date];
 
@@ -270,83 +318,44 @@ export const actions: Actions = {
 
 		if (err) return fail(500, { movementError: err.message });
 
-		// Create notifications for other space members (silent – never blocks the main flow)
+		// Notifications are best-effort – never block the main response
 		try {
-			const firstMovementId = insertedRows?.[0]?.id ?? null;
-			const actorName =
-				(user.user_metadata?.full_name as string | undefined) ??
-				(user.user_metadata?.name as string | undefined) ??
-				(user.user_metadata?.display_name as string | undefined) ??
-				user.email?.split('@')[0] ??
-				'Someone';
-
-			const [{ data: spaceData }, { data: members }] = await Promise.all([
-				admin.from('costs_spaces').select('name').eq('id', activeSpaceId).single(),
-				admin
-					.from('costs_spaces_connections')
-					.select('user_id')
-					.eq('space_id', activeSpaceId)
-					.neq('user_id', user.id)
-			]);
-
-			if (spaceData && members && members.length > 0) {
-				const notificationRows = members.map((m) => ({
-					user_id: m.user_id,
-					space_id: activeSpaceId,
-					movement_id: firstMovementId,
-					actor_id: user.id,
-					actor_name: actorName,
-					amount: finalAmount,
-					description,
-					category_name: categoryName,
-					space_name: spaceData.name
-				}));
-				await admin.from('costs_notifications').insert(notificationRows);
-			}
+			await dispatchCreationNotifications(admin, {
+				userId: user.id,
+				userMeta: user.user_metadata as Record<string, unknown>,
+				userEmail: user.email,
+				spaceId: activeSpaceId,
+				movementId: insertedRows?.[0]?.id ?? null,
+				amount: finalAmount,
+				description,
+				categoryName
+			});
 		} catch {
-			// Notifications are best-effort; do not fail the request
+			// silent
 		}
 
 		return { movementSuccess: true, movementAction: 'create' };
 	},
 
 	updateMovement: async ({ request, locals }) => {
-		const { user } = await locals.safeGetSession();
+		const { user, activeSpaceId } = await getAuthContext(locals);
 		if (!user) throw redirect(303, '/login');
-
-		const activeSpaceId = (user.user_metadata?.active_space_id as string | undefined) ?? null;
 		if (!activeSpaceId) return fail(400, { movementError: 'No active space.' });
 
-		const form = await request.formData();
-		const id = String(form.get('id') ?? '').trim();
-		const amountRaw = String(form.get('amount') ?? '');
-		const date = String(form.get('date') ?? '').trim();
-		const description = String(form.get('description') ?? '').trim() || null;
-		const category_id = String(form.get('category_id') ?? '').trim() || null;
-		const expense_user_id = String(form.get('expense_user_id') ?? '').trim() || null;
-		const tagsRaw = String(form.get('tags') ?? '').trim();
+		const formData = await request.formData();
+		const id = String(formData.get('id') ?? '').trim();
+		const { amount, date, description, category_id, expense_user_id, tagsRaw, invert_sign } =
+			parseMovementForm(formData);
 		const tags = tagsRaw ? tagsRaw.split(',').map((t) => t.trim()).filter(Boolean) : null;
 
-		const amount = parseFloat(amountRaw);
 		if (!id || isNaN(amount) || amount <= 0 || !date)
 			return fail(400, { movementError: 'Invalid data.' });
 
 		const admin = getAdminClient();
 		if (!admin) return fail(500, { movementError: 'Service unavailable.' });
 
-		// Determine sign from category type
-		let isIncome = false;
-		if (category_id) {
-			const { data: catData } = await admin
-				.from('costs_categories')
-				.select('type')
-				.eq('id', category_id)
-				.maybeSingle();
-			isIncome = catData?.type === 'income';
-		}
-		const invert_sign = form.get('invert_sign') === 'on';
-		const sign = (isIncome ? 1 : -1) * (invert_sign ? -1 : 1);
-		const finalAmount = Math.abs(amount) * sign;
+		const { sign } = await resolveCategorySign(admin, activeSpaceId, category_id);
+		const finalAmount = Math.abs(amount) * sign * (invert_sign ? -1 : 1);
 
 		const { error: err } = await admin
 			.from('costs_movements')
@@ -360,14 +369,12 @@ export const actions: Actions = {
 	},
 
 	deleteMovement: async ({ request, locals }) => {
-		const { user } = await locals.safeGetSession();
+		const { user, activeSpaceId } = await getAuthContext(locals);
 		if (!user) throw redirect(303, '/login');
-
-		const activeSpaceId = (user.user_metadata?.active_space_id as string | undefined) ?? null;
 		if (!activeSpaceId) return fail(400, { movementError: 'No active space.' });
 
-		const form = await request.formData();
-		const id = String(form.get('id') ?? '').trim();
+		const formData = await request.formData();
+		const id = String(formData.get('id') ?? '').trim();
 		if (!id) return fail(400, { movementError: 'Invalid ID.' });
 
 		const admin = getAdminClient();

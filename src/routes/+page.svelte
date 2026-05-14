@@ -8,14 +8,16 @@
 	import TransactionFilters from '$lib/components/TransactionFilters.svelte';
 	import LandingPage from '$lib/components/LandingPage.svelte';
 	import MovementFormModal from '$lib/components/MovementFormModal.svelte';
+	import { buildTagFilterHref } from '$lib/utils';
 
 	let { data, form } = $props();
 	let showMovementForm = $state(false);
 	let editingMovement = $state<MovementRow | null>(null);
 	let showCreateSuccessModal = $state(false);
 	let showDeleteConfirmModal = $state(false);
-	let pendingDeleteForm = $state<HTMLFormElement | null>(null);
+	let pendingDeleteId = $state<string | null>(null);
 	let pendingDeleteLabel = $state('');
+	let deleteFormEl = $state<HTMLFormElement | undefined>();
 
 	const typeBadgeClass: Record<string, string> = {
 		income: 'badge-success'
@@ -62,29 +64,15 @@
 	const exportHref = $derived(
 		`/export${data.filterQueryString ? `?${data.filterQueryString}` : ''}`
 	);
-
-	function loadMore() {
-		goto(loadMoreHref, { noScroll: true, keepFocus: true });
-	}
-
-	function tagFilterHref(tag: string): string {
-		const params = new URLSearchParams(data.filterQueryString);
-		if (data.filters.tag === tag) {
-			params.delete('tag');
-		} else {
-			params.set('tag', tag);
-		}
-		const qs = params.toString();
-		return qs ? `?${qs}` : '/';
-	}
+	const deleteAction = $derived(
+		`?/deleteMovement${data.filterQueryString ? '&' + data.filterQueryString : ''}`
+	);
 
 	$effect(() => {
 		if ((form as { movementSuccess?: boolean } | undefined)?.movementSuccess) {
 			showMovementForm = false;
 			editingMovement = null;
-			if (movementAction === 'create') {
-				showCreateSuccessModal = true;
-			}
+			if (movementAction === 'create') showCreateSuccessModal = true;
 		}
 	});
 
@@ -98,28 +86,21 @@
 		showMovementForm = true;
 	}
 
-	function askDeleteConfirmation(m: MovementRow, event: MouseEvent) {
-		const trigger = event.currentTarget as HTMLButtonElement | null;
-		pendingDeleteForm = trigger?.form ?? null;
-		pendingDeleteLabel = `${formatAmount(m.amount)} del ${formatDate(m.date)}`;
+	function askDeleteConfirmation(m: MovementRow) {
+		pendingDeleteId = m.id;
+		pendingDeleteLabel = `${formatAmount(m.amount)} of ${formatDate(m.date)}`;
 		showDeleteConfirmModal = true;
 	}
 
-	function cancelDeleteConfirmation() {
+	function cancelDelete() {
 		showDeleteConfirmModal = false;
-		pendingDeleteForm = null;
+		pendingDeleteId = null;
 		pendingDeleteLabel = '';
 	}
 
 	function confirmDelete() {
-		if (!pendingDeleteForm) return;
-		const formEl = pendingDeleteForm;
-		cancelDeleteConfirmation();
-		formEl.requestSubmit();
-	}
-
-	function closeCreateSuccessModal() {
-		showCreateSuccessModal = false;
+		deleteFormEl?.requestSubmit();
+		cancelDelete();
 	}
 </script>
 
@@ -159,6 +140,42 @@
 			{#if data.movements.length === 0}
 				<p class="text-sm text-base-content/60">No transactions found for the selected filters.</p>
 			{:else}
+				<!-- Shared snippets ─────────────────────────────────────── -->
+				{#snippet tagBadges(m: MovementRow)}
+					{#if m.tags?.length}
+						<div class="flex flex-wrap gap-1">
+							{#each m.tags as tag}
+								<a
+									href={buildTagFilterHref(tag, data.filters.tag, data.filterQueryString)}
+									class="badge badge-ghost badge-sm cursor-pointer hover:badge-primary"
+								>{tag}</a>
+							{/each}
+						</div>
+					{/if}
+				{/snippet}
+
+				{#snippet typeBadge(type: string)}
+					<span
+						class="badge badge-sm {typeBadgeClass[type] ?? 'badge-ghost'}"
+						style={typeBadgeStyle(type)}
+					>{type}</span>
+				{/snippet}
+
+				{#snippet rowActions(m: MovementRow, size: 'xs' | 'sm')}
+					<button class="btn btn-ghost btn-{size}" onclick={() => openEdit(m)} aria-label="Edit">
+						<Pencil size={size === 'xs' ? 14 : 16} />
+					</button>
+					<button
+						class="btn btn-ghost btn-{size} text-error"
+						type="button"
+						onclick={() => askDeleteConfirmation(m)}
+						aria-label="Delete"
+					>
+						<Trash2 size={size === 'xs' ? 14 : 16} />
+					</button>
+				{/snippet}
+
+				<!-- Desktop table ───────────────────────────────────────── -->
 				<div class="hidden overflow-x-auto md:block">
 					<table class="table table-sm w-full">
 						<thead>
@@ -176,7 +193,7 @@
 							{#each data.movements as m (m.id)}
 								{@const cat = m.costs_categories}
 								<tr class="hover">
-									<td class="text-right font-semibold {amountClass(m.amount, m.costs_categories?.type)}">
+									<td class="text-right font-semibold {amountClass(m.amount, cat?.type)}">
 										{formatAmount(m.amount)}
 									</td>
 									<td class="whitespace-nowrap text-sm">{formatDate(m.date)}</td>
@@ -184,42 +201,14 @@
 										<span class="font-medium">{cat?.name ?? '—'}</span>
 										{#if m.description}<p class="text-xs text-base-content/50">{m.description}</p>{/if}
 									</td>
-									<td>
-										{#if cat?.type}
-										<span
-											class="badge badge-sm {typeBadgeClass[cat.type] ?? 'badge-ghost'}"
-											style={typeBadgeStyle(cat.type)}
-										>{cat.type}</span>
-									{/if}
-									</td>
+									<td>{#if cat?.type}{@render typeBadge(cat.type)}{/if}</td>
 									<td class="text-xs text-base-content/60">
 										{m.expense_user_id ? (data.membersMap[m.expense_user_id] ?? m.expense_user_id.slice(0, 8)) : ''}
 									</td>
-									<td>
-										{#if m.tags?.length}
-											<div class="flex flex-wrap gap-1">
-												{#each m.tags as tag}
-													<a href={tagFilterHref(tag)} class="badge badge-ghost badge-sm cursor-pointer hover:badge-primary">{tag}</a>
-												{/each}
-											</div>
-										{/if}
-									</td>
+									<td>{@render tagBadges(m)}</td>
 									<td>
 										<div class="flex gap-1">
-											<button class="btn btn-ghost btn-xs" onclick={() => openEdit(m)} aria-label="Edit">
-												<Pencil size={14} />
-											</button>
-										<form method="POST" action={`?/deleteMovement${data.filterQueryString ? '&' + data.filterQueryString : ''}`}>
-												<input type="hidden" name="id" value={m.id} />
-												<button
-													class="btn btn-ghost btn-xs text-error"
-													type="button"
-													onclick={(event) => askDeleteConfirmation(m, event)}
-													aria-label="Delete"
-												>
-													<Trash2 size={14} />
-												</button>
-											</form>
+											{@render rowActions(m, 'xs')}
 										</div>
 									</td>
 								</tr>
@@ -228,32 +217,20 @@
 					</table>
 				</div>
 
-				<!-- Mobile: card list -->
+				<!-- Mobile card list ────────────────────────────────────── -->
 				<ul class="space-y-2 md:hidden">
 					{#each data.movements as m (m.id)}
 						{@const cat = m.costs_categories}
 						<li class="rounded-lg border border-base-200 px-3 py-2">
-							<!-- Header: amount+category+type -->
 							<div class="flex min-w-0 flex-wrap items-center gap-1.5">
-								<span class="text-xl font-semibold {amountClass(m.amount, m.costs_categories?.type)}">{formatAmount(m.amount)}</span>
+								<span class="text-xl font-semibold {amountClass(m.amount, cat?.type)}">{formatAmount(m.amount)}</span>
 								<span class="text-base font-medium">{cat?.name ?? '—'}</span>
-								{#if cat?.type}<span
-							class="badge badge-sm {typeBadgeClass[cat.type] ?? 'badge-ghost'}"
-							style={typeBadgeStyle(cat.type)}
-						>{cat.type}</span>{/if}
+								{#if cat?.type}{@render typeBadge(cat.type)}{/if}
 							</div>
-							<!-- Body: description -->
 							{#if m.description}
 								<p class="mt-1 text-sm text-base-content/60">{m.description}</p>
 							{/if}
-							{#if m.tags?.length}
-								<div class="mt-2 flex flex-wrap gap-1">
-									{#each m.tags as tag}
-										<a href={tagFilterHref(tag)} class="badge badge-ghost badge-sm cursor-pointer hover:badge-primary">{tag}</a>
-									{/each}
-								</div>
-							{/if}
-							<!-- Footer: date + user + actions -->
+							<div class="mt-2">{@render tagBadges(m)}</div>
 							<div class="mt-1 flex items-center justify-between gap-2">
 								<div class="flex flex-wrap items-center gap-2 text-sm text-base-content/40">
 									<span>{formatDate(m.date)}</span>
@@ -262,20 +239,7 @@
 									{/if}
 								</div>
 								<div class="flex shrink-0 gap-1">
-									<button class="btn btn-ghost btn-sm" onclick={() => openEdit(m)} aria-label="Edit">
-										<Pencil size={16} />
-									</button>
-								<form method="POST" action={`?/deleteMovement${data.filterQueryString ? '&' + data.filterQueryString : ''}`} use:enhance>
-										<input type="hidden" name="id" value={m.id} />
-										<button
-											class="btn btn-ghost btn-sm text-error"
-											type="button"
-											onclick={(event) => askDeleteConfirmation(m, event)}
-											aria-label="Delete"
-										>
-											<Trash2 size={16} />
-										</button>
-									</form>
+									{@render rowActions(m, 'sm')}
 								</div>
 							</div>
 						</li>
@@ -284,7 +248,7 @@
 
 				{#if hasMore}
 					<div class="mt-4 text-center">
-						<button type="button" class="btn btn-ghost btn-sm" onclick={loadMore}>
+						<button type="button" class="btn btn-ghost btn-sm" onclick={() => goto(loadMoreHref, { noScroll: true, keepFocus: true })}>
 							Load more ({data.totalMovements - data.limit} remaining)
 						</button>
 					</div>
@@ -293,7 +257,12 @@
 		</section>
 	</div>
 
-	<!-- Bottone + flottante -->
+	<!-- Shared delete form – submitted programmatically from confirmDelete() -->
+	<form bind:this={deleteFormEl} method="POST" action={deleteAction} use:enhance hidden>
+		<input type="hidden" name="id" value={pendingDeleteId ?? ''} />
+	</form>
+
+	<!-- FAB -->
 	<button
 		class="btn btn-primary btn-circle fixed bottom-20 right-4 z-30 h-16 w-16 leading-none shadow-lg md:bottom-8 md:right-8"
 		style="font-size: 2.25rem;"
@@ -320,7 +289,7 @@
 		confirmLabel="Yes, delete"
 		cancelLabel="Cancel"
 		onConfirm={confirmDelete}
-		onCancel={cancelDeleteConfirmation}
+		onCancel={cancelDelete}
 	/>
 
 	<SuccessModal
@@ -328,6 +297,6 @@
 		title="Transaction created"
 		message="The new transaction was saved successfully."
 		buttonLabel="Ok"
-		onClose={closeCreateSuccessModal}
+		onClose={() => (showCreateSuccessModal = false)}
 	/>
 {/if}

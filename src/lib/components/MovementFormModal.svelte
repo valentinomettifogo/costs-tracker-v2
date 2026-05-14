@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import type { Category } from '$lib/types';
 
 	interface MovementRow {
 		id: string;
@@ -11,13 +12,6 @@
 		tags: string[] | null;
 		category_id: string | null;
 		costs_categories: { id: string; name: string; type: string } | null;
-	}
-
-	interface Category {
-		id: string;
-		name: string;
-		type: string;
-		space_id: string;
 	}
 
 	interface Props {
@@ -55,11 +49,11 @@
 		).map(([type, cats]) => ({ type, cats }))
 	);
 
-	let selectedCategoryType = $derived(
+	const selectedCategoryType = $derived(
 		categories.find((c) => c.id === selectedCategoryId)?.type ?? editing?.costs_categories?.type ?? null
 	);
 
-	let invertSign = $derived.by(() => {
+	const invertSign = $derived.by(() => {
 		if (!editing) return false;
 		const expectedPositive = selectedCategoryType === 'income';
 		const actualPositive = editing.amount >= 0;

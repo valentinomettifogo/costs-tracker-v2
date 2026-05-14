@@ -1,9 +1,6 @@
 <script lang="ts">
-	interface Category {
-		id: string;
-		name: string;
-		type: string;
-	}
+	import type { Category } from '$lib/types';
+	import { buildTagFilterHref } from '$lib/utils';
 
 	interface Filters {
 		year: number | null;
@@ -40,17 +37,6 @@
 		{ value: 12, label: 'December' }
 	];
 
-	function tagFilterHref(tag: string): string {
-		const params = new URLSearchParams(filterQueryString);
-		if (filters.tag === tag) {
-			params.delete('tag');
-		} else {
-			params.set('tag', tag);
-		}
-		const qs = params.toString();
-		return qs ? `?${qs}` : resetHref;
-	}
-
 	let detailsRef: HTMLDetailsElement | undefined = $state();
 
 	function closeDetails() {
@@ -64,7 +50,7 @@
 		{#if filters.tag}
 			<div class="mb-2 flex items-center gap-2">
 				<span class="text-xs text-base-content/60">Tag filter:</span>
-				<a href={tagFilterHref(filters.tag)} class="badge badge-primary badge-sm">{filters.tag} ×</a>
+				<a href={buildTagFilterHref(filters.tag, filters.tag, filterQueryString, resetHref)} class="badge badge-primary badge-sm">{filters.tag} ×</a>
 			</div>
 		{/if}
 		<form method="GET" onsubmit={closeDetails} class="grid grid-cols-1 gap-2 md:grid-cols-6">

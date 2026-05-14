@@ -1,3 +1,10 @@
+export interface Category {
+	id: string;
+	name: string;
+	type: string;
+	space_id?: string;
+}
+
 export interface Notification {
 	id: string;
 	user_id: string;
