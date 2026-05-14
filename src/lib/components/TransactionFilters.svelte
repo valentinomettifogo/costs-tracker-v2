@@ -50,9 +50,15 @@
 		const qs = params.toString();
 		return qs ? `?${qs}` : resetHref;
 	}
+
+	let detailsRef: HTMLDetailsElement | undefined = $state();
+
+	function closeDetails() {
+		if (detailsRef) detailsRef.open = false;
+	}
 </script>
 
-<details class="collapse collapse-arrow mb-3 rounded-box border border-base-500 bg-base-100 shadow-sm">
+<details bind:this={detailsRef} class="collapse collapse-arrow mb-3 rounded-box border border-base-500 bg-base-100 shadow-sm">
 	<summary class="collapse-title min-h-0 py-3 text-sm font-semibold text-base-content">Filters</summary>
 	<div class="collapse-content pt-1">
 		{#if filters.tag}
@@ -61,7 +67,7 @@
 				<a href={tagFilterHref(filters.tag)} class="badge badge-primary badge-sm">{filters.tag} ×</a>
 			</div>
 		{/if}
-		<form method="GET" class="grid grid-cols-1 gap-2 md:grid-cols-6">
+		<form method="GET" onsubmit={closeDetails} class="grid grid-cols-1 gap-2 md:grid-cols-6">
 			{#if filters.tag}
 				<input type="hidden" name="tag" value={filters.tag} />
 			{/if}

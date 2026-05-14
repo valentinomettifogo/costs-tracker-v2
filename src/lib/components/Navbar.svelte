@@ -43,7 +43,9 @@
 </script>
 
 <nav class="relative z-50 border-b border-base-300 bg-base-100/90 backdrop-blur">
-	<!-- Mobile: solo avatar/login fisso in alto a destra -->
+	<!-- Mobile: spacer che dà al nav la sua altezza reale includendo la safe area -->
+	<div class="md:hidden" style="height: calc(3.5rem + env(safe-area-inset-top, 0px))"></div>
+	<!-- Mobile: avatar/login fisso in alto a destra, sotto la status bar -->
 	<div class="fixed right-4 z-50 flex items-center gap-1 md:hidden" style="top: calc(0.75rem + env(safe-area-inset-top, 0px))">
 		{#if user}
 			<NotificationBell {notifications} {userId} />
