@@ -153,7 +153,7 @@
 </nav>
 
 <!-- Mobile: bottom navigation bar -->
-<nav class="fixed inset-x-0 bottom-0 z-40 border-t border-base-300 bg-base-100 md:hidden" style="padding-bottom: env(safe-area-inset-bottom, 0px)">
+<nav class="fixed inset-x-0 bottom-0 z-40 border-t border-base-300 bg-base-100 md:hidden">
 	{#if user}
 		<ul class="grid h-16 items-stretch text-xs font-medium {isAdmin ? 'grid-cols-3' : 'grid-cols-2'}">
 			<li>
