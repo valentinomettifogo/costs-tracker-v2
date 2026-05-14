@@ -38,7 +38,11 @@
 	];
 
 	// ── Category multi-select ────────────────────────────────────────────────
-	let selectedCategoryIds = $state<string[]>(filters.categoryIds);
+	let selectedCategoryIds = $state<string[]>([]);
+	// Sync with filters prop whenever it changes (e.g. after navigation / form submit)
+	$effect(() => {
+		selectedCategoryIds = filters.categoryIds;
+	});
 
 	const allSelected = $derived(selectedCategoryIds.length === categories.length && categories.length > 0);
 	const noneSelected = $derived(selectedCategoryIds.length === 0);
@@ -130,7 +134,7 @@
 						{categoryLabel}
 					</summary>
 					<!-- fixed positioning so the panel escapes any overflow:hidden ancestor -->
-					<div class="dropdown-content fixed z-[9999] mt-1 min-w-[260px] rounded-box border border-base-200 bg-base-100 p-2 shadow-xl">
+					<div class="dropdown-content fixed z-9999 mt-1 min-w-260px rounded-box border border-base-200 bg-base-100 p-2 shadow-xl">
 						<!-- Master "All categories" checkbox -->
 						<label class="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 font-medium hover:bg-base-200">
 							<input
