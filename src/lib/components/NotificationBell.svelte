@@ -185,7 +185,7 @@
 									</p>
 									{#if notif.category_name}
 										<p class="mt-0.5 text-xs text-base-content/60">
-											in <span class="font-medium">{notif.category_name}</span>
+											of <span class="font-medium">{notif.category_name}</span>
 										</p>
 									{/if}
 									<p class="mt-0.5 text-xs text-base-content/60">
