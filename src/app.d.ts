@@ -8,6 +8,8 @@ declare global {
 		interface Locals {
 			supabase: SupabaseClient;
 			safeGetSession: () => Promise<{ user: User | null }>;
+			/** Per-request session cache — set by safeGetSession, do not use directly. */
+			_sessionCache?: { user: User | null };
 		}
 		interface PageData {
 			user: User | null;

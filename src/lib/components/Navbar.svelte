@@ -43,10 +43,10 @@
 </script>
 
 <nav class="relative z-50 border-b border-base-300 bg-base-100/90 backdrop-blur">
-	<!-- Mobile: spacer che dà al nav la sua altezza reale includendo la safe area -->
-	<div class="md:hidden" style="height: calc(3.5rem + env(safe-area-inset-top, 0px))"></div>
-	<!-- Mobile: avatar/login fisso in alto a destra, sotto la status bar -->
-	<div class="fixed right-4 z-50 flex items-center gap-1 md:hidden" style="top: calc(0.75rem + env(safe-area-inset-top, 0px))">
+	<!-- Mobile: minimal spacer — only covers the status bar (safe area), no extra height -->
+	<div class="md:hidden" style="height: env(safe-area-inset-top, 0px)"></div>
+	<!-- Mobile: avatar/login fixed just below the status bar, aligned with page title -->
+	<div class="fixed right-4 z-50 flex items-center gap-1 md:hidden" style="top: calc(0.5rem + env(safe-area-inset-top, 0px))">
 		{#if user}
 			<NotificationBell {notifications} {userId} />
 			<div class="dropdown dropdown-end">

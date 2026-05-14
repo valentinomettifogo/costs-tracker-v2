@@ -25,16 +25,19 @@ export const handle: Handle = async ({ event, resolve }) => {
 	);
 
 	event.locals.safeGetSession = async () => {
+		// Cache the result within this request so multiple load functions
+		// (layout + page) never make more than one auth.getUser() network call.
+		if (event.locals._sessionCache !== undefined) {
+			return event.locals._sessionCache;
+		}
 		const {
 			data: { user },
 			error
 		} = await event.locals.supabase.auth.getUser();
 
-		if (error || !user) {
-			return { user: null };
-		}
-
-		return { user };
+		const result = error || !user ? { user: null } : { user };
+		event.locals._sessionCache = result;
+		return result;
 	};
 
 	return resolve(event, {
