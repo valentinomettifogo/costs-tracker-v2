@@ -6,7 +6,7 @@
 		year: number | null;
 		month: number | null;
 		ytd: boolean;
-		categoryId: string | null;
+		categoryIds: string[];
 		type: string | null;
 		query: string;
 		tag: string | null;
@@ -37,10 +37,42 @@
 		{ value: 12, label: 'December' }
 	];
 
+	// ── Category multi-select ────────────────────────────────────────────────
+	let selectedCategoryIds = $state<string[]>(filters.categoryIds);
+
+	const allSelected = $derived(selectedCategoryIds.length === categories.length && categories.length > 0);
+	const noneSelected = $derived(selectedCategoryIds.length === 0);
+	const isPartial = $derived(!noneSelected && !allSelected);
+
+	const categoryLabel = $derived(
+		noneSelected || allSelected
+			? 'All categories'
+			: `${selectedCategoryIds.length} of ${categories.length} selected`
+	);
+
+	// Master checkbox needs indeterminate set as a DOM property, not an HTML attribute
+	let masterCheckboxRef = $state<HTMLInputElement | undefined>();
+	$effect(() => {
+		if (masterCheckboxRef) masterCheckboxRef.indeterminate = isPartial;
+	});
+
+	function toggleMaster(checked: boolean) {
+		selectedCategoryIds = checked ? categories.map((c) => c.id) : [];
+	}
+
+	function toggleCategory(id: string, checked: boolean) {
+		selectedCategoryIds = checked
+			? [...selectedCategoryIds, id]
+			: selectedCategoryIds.filter((i) => i !== id);
+	}
+
+	// ── Filter panel ─────────────────────────────────────────────────────────
 	let detailsRef: HTMLDetailsElement | undefined = $state();
+	let categoryDetailsRef: HTMLDetailsElement | undefined = $state();
 
 	function closeDetails() {
 		if (detailsRef) detailsRef.open = false;
+		if (categoryDetailsRef) categoryDetailsRef.open = false;
 	}
 </script>
 
@@ -90,15 +122,48 @@
 				</select>
 			</label>
 
-			<label class="form-control">
+			<!-- Category multi-select -->
+			<div class="form-control">
 				<span class="label-text text-xs">Category</span>
-				<select class="select select-bordered w-full" name="category">
-					<option value="">All</option>
-					{#each categories as cat}
-						<option value={cat.id} selected={filters.categoryId === cat.id}>{cat.name}</option>
-					{/each}
-				</select>
-			</label>
+				<details bind:this={categoryDetailsRef} class="dropdown w-full">
+					<summary class="select select-bordered flex w-full cursor-pointer items-center [&::-webkit-details-marker]:hidden marker:hidden">
+						{categoryLabel}
+					</summary>
+					<!-- fixed positioning so the panel escapes any overflow:hidden ancestor -->
+					<div class="dropdown-content fixed z-[9999] mt-1 min-w-[260px] rounded-box border border-base-200 bg-base-100 p-2 shadow-xl">
+						<!-- Master "All categories" checkbox -->
+						<label class="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 font-medium hover:bg-base-200">
+							<input
+								bind:this={masterCheckboxRef}
+								type="checkbox"
+								class="checkbox checkbox-sm"
+								checked={allSelected}
+								onchange={(e) => toggleMaster((e.currentTarget as HTMLInputElement).checked)}
+							/>
+							<span class="text-sm">All categories</span>
+						</label>
+						<div class="divider my-1"></div>
+						<!-- Individual categories -->
+						<ul class="max-h-56 overflow-y-auto">
+							{#each categories as cat (cat.id)}
+								<li>
+									<label class="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 hover:bg-base-200">
+										<input
+											type="checkbox"
+											name="category"
+											value={cat.id}
+											class="checkbox checkbox-xs"
+											checked={selectedCategoryIds.includes(cat.id)}
+											onchange={(e) => toggleCategory(cat.id, (e.currentTarget as HTMLInputElement).checked)}
+										/>
+										<span class="text-sm">{cat.name}</span>
+									</label>
+								</li>
+							{/each}
+						</ul>
+					</div>
+				</details>
+			</div>
 
 			<label class="form-control">
 				<span class="label-text text-xs">Search description</span>

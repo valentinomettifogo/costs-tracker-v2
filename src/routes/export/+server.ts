@@ -25,7 +25,10 @@ export const GET: RequestHandler = async ({ locals, url }) => {
 	const yearRaw = url.searchParams.get('year')?.trim() ?? '';
 	const monthRaw = url.searchParams.get('month')?.trim() ?? '';
 	const ytd = monthRaw === 'ytd';
-	const categoryId = url.searchParams.get('category')?.trim() || null;
+	const categoryIds = url.searchParams
+		.getAll('category')
+		.map((id) => id.trim())
+		.filter((id) => id.length > 0 && id.length <= 36);
 	const query = (url.searchParams.get('q')?.trim().toLowerCase() ?? '').slice(0, 100);
 	const tag = (url.searchParams.get('tag')?.trim() ?? '').slice(0, 40) || null;
 	const typeRaw = url.searchParams.get('type')?.trim().toLowerCase() ?? '';
@@ -77,7 +80,7 @@ export const GET: RequestHandler = async ({ locals, url }) => {
 
 	if (fromDate) q = q.gte('date', fromDate);
 	if (toDate) q = q.lte('date', toDate);
-	if (categoryId) q = q.eq('category_id', categoryId);
+	if (categoryIds.length > 0) q = q.in('category_id', categoryIds);
 	if (type) q = q.eq('costs_categories.type', type);
 	if (query) q = q.ilike('description', `%${query}%`);
 	if (tag) q = q.contains('tags', [tag]);

@@ -10,7 +10,8 @@ export interface ParsedFilters {
 	year: number | null;
 	month: number | null;
 	ytd: boolean;
-	categoryId: string | null;
+	/** Empty array means "no category filter" (show all). */
+	categoryIds: string[];
 	type: CategoryType | null;
 	query: string;
 	tag: string | null;
@@ -54,7 +55,11 @@ export function parseUrlFilters(url: URL, options: ParseFilterOptions): ParsedFi
 
 	const ytd = monthRaw === 'ytd' || (defaultYtd && !hasYearParam && !hasMonthParam);
 
-	const categoryId = url.searchParams.get('category')?.trim() || null;
+	// Allow multiple `category` params; validate each to a reasonable length.
+	const categoryIds = url.searchParams
+		.getAll('category')
+		.map((id) => id.trim())
+		.filter((id) => id.length > 0 && id.length <= 36);
 	const query = (url.searchParams.get('q')?.trim().toLowerCase() ?? '').slice(0, 100);
 	const tag = (url.searchParams.get('tag')?.trim() ?? '').slice(0, 40) || null;
 
@@ -96,7 +101,7 @@ export function parseUrlFilters(url: URL, options: ParseFilterOptions): ParsedFi
 		month = parsedMonthNum;
 	}
 
-	return { year, month, ytd, categoryId, type, query, tag };
+	return { year, month, ytd, categoryIds, type, query, tag };
 }
 
 export function buildDateRange(

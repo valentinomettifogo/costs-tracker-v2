@@ -57,7 +57,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			year: null as number | null,
 			month: null as number | null,
 			ytd: false,
-			categoryId: null as string | null,
+			categoryIds: [] as string[],
 			type: null as 'needs' | 'wants' | 'income' | 'savings' | null,
 			query: '',
 			tag: null as string | null
@@ -165,7 +165,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 
 	if (fromDate) movementsQuery = movementsQuery.gte('date', fromDate);
 	if (toDate) movementsQuery = movementsQuery.lte('date', toDate);
-	if (filters.categoryId) movementsQuery = movementsQuery.eq('category_id', filters.categoryId);
+	if (filters.categoryIds.length > 0) movementsQuery = movementsQuery.in('category_id', filters.categoryIds);
 	if (filters.type) movementsQuery = movementsQuery.eq('costs_categories.type', filters.type);
 	if (filters.query) movementsQuery = movementsQuery.ilike('description', `%${filters.query}%`);
 	if (filters.tag) movementsQuery = movementsQuery.contains('tags', [filters.tag]);
