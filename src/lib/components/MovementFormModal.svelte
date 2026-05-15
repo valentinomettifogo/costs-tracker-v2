@@ -101,12 +101,16 @@
 							<span class="label-text mb-1 block">Amount</span>
 							<input
 								class="input input-bordered w-full"
-								type="number"
+								type="text"
 								inputmode="decimal"
 								name="amount"
-								min="0.01"
-								step="0.01"
+								pattern="[0-9]+([.,][0-9]{1,2})?"
 								value={editing ? Math.abs(editing.amount) : ''}
+								oninput={(e) => {
+									const el = e.currentTarget;
+									const normalized = el.value.replace(',', '.');
+									if (normalized !== el.value) el.value = normalized;
+								}}
 								required
 							/>
 						</label>
