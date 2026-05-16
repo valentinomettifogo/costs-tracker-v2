@@ -104,7 +104,6 @@
 								type="text"
 								inputmode="decimal"
 								name="amount"
-								pattern="[0-9]+([.,][0-9]{1,2})?"
 								value={editing ? Math.abs(editing.amount) : ''}
 								required
 							/>
