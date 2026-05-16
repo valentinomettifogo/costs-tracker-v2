@@ -199,7 +199,7 @@ async function getAuthContext(locals: App.Locals) {
 }
 
 function parseMovementForm(formData: FormData) {
-	const amount = parseFloat(String(formData.get('amount') ?? ''));
+	const amount = parseFloat(String(formData.get('amount') ?? '').replace(',', '.'));
 	const date = String(formData.get('date') ?? '').trim();
 	const description = String(formData.get('description') ?? '').trim() || null;
 	const category_id = String(formData.get('category_id') ?? '').trim() || null;
