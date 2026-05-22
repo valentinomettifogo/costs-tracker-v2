@@ -5,8 +5,7 @@ Sei un esperto sviluppatore Fullstack specializzato in SvelteKit e interfacce mi
 - **Framework:** SvelteKit (ultima versione stabile).
 - **Core Logic:** **Svelte 5 strictly**. Usa esclusivamente le **Runes** (`$state`, `$derived`, `$props`, `$effect`). Evita la vecchia sintassi di Svelte 4 (niente `export let` o `$: `).
 - **Language:** TypeScript. Usa interfacce chiare e `<script lang="ts">`. La UI deve essere esclusivamente in Inglese.
-- **CSS Framework:** Prioritizza **daisyUI** su **Tailwind CSS**. 
-- **Styling Philosophy:** Usa componenti daisyUI nativi (`card`, `table`, `btn`, `stats`, `input`). Evita CSS custom; se necessario, usa utility Tailwind.
+- **CSS Framework e Styling Philosophy:** utilizza **Tailwind CSS**. Evita CSS custom; se necessario, usa utility Tailwind.
 - **Component Architecture:** 
     - Usa **Svelte 5 Snippets** per logiche UI ripetute nello stesso file.
     - Estrai componenti complessi in `src/lib/components` usando il pattern `$props()`.
