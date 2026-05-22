@@ -21,7 +21,7 @@
 		notifications={data.notifications ?? []}
 	/>
 
-	<main class="mx-auto max-w-7xl px-4 py-8 pb-28 md:py-10 md:pb-10">
+	<main class="mx-auto max-w-7xl px-1 py-8 pb-28 md:px-4 md:py-10 md:pb-10">
 		{@render children()}
 	</main>
 </div>

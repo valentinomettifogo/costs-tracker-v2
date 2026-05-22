@@ -7,7 +7,7 @@ Web app for tracking personal and shared expenses with spaces, categories, invit
 - SvelteKit 2 + Svelte 5 (Runes)
 - TypeScript
 - Supabase (Auth + Postgres)
-- Tailwind CSS 4 + daisyUI
+- Tailwind CSS 4 (Pure utility-first approach)
 - lucide-svelte icons
 
 ## Main Features

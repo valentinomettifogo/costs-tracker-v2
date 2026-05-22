@@ -92,6 +92,17 @@
 	}
 
 	const inputBaseClass = "w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:bg-gray-50 disabled:text-gray-400";
+
+	// Detect if filters are actually active (excluding defaults)
+	const hasActiveFilters = $derived(
+		filters.type || 
+		filters.query || 
+		filters.tag || 
+		filters.ytd ||
+		(filters.categoryIds.length > 0 && filters.categoryIds.length < categories.length) ||
+		// If the query string has content, it means the user manually changed something
+		(filterQueryString !== '' && filterQueryString !== 'limit=')
+	);
 </script>
 
 <div class="mb-4 rounded-xl border border-gray-200 bg-white shadow-sm overflow-visible">
@@ -104,7 +115,7 @@
 		<div class="flex items-center gap-2">
 			<Filter size={16} class="text-gray-500" />
 			<span class="text-sm font-semibold text-gray-700">Filters</span>
-			{#if filters.year || filters.type || filters.query || (filters.categoryIds.length > 0 && filters.categoryIds.length < categories.length)}
+			{#if hasActiveFilters}
 				<span class="flex h-2 w-2 rounded-full bg-primary"></span>
 			{/if}
 		</div>
@@ -135,6 +146,11 @@
 				{#if filters.tag}
 					<input type="hidden" name="tag" value={filters.tag} />
 				{/if}
+
+				<!-- Sync categories state with form -->
+				{#each selectedCategoryIds as id}
+					<input type="hidden" name="category" value={id} />
+				{/each}
 
 				<!-- Year -->
 				<div class="space-y-1">
@@ -185,7 +201,7 @@
 					</button>
 
 					{#if isCategoryDropdownOpen}
-						<div class="absolute left-0 top-full z-100 mt-1 w-64 rounded-lg border border-gray-200 bg-white p-2 shadow-xl animate-in fade-in zoom-in-95 duration-100">
+						<div class="absolute left-0 top-full z-[100] mt-1 w-64 rounded-lg border border-gray-200 bg-white p-2 shadow-xl animate-in fade-in zoom-in-95 duration-100">
 							<!-- Master Checkbox -->
 							<label class="flex cursor-pointer items-center gap-3 rounded-md px-2 py-1.5 transition-colors hover:bg-gray-50">
 								<input
@@ -206,8 +222,6 @@
 									<label class="flex cursor-pointer items-center gap-3 rounded-md px-2 py-1.5 transition-colors hover:bg-gray-50">
 										<input
 											type="checkbox"
-											name="category"
-											value={cat.id}
 											class="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary transition-all cursor-pointer"
 											checked={selectedCategoryIds.includes(cat.id)}
 											onchange={(e) => toggleCategory(cat.id, (e.currentTarget as HTMLInputElement).checked)}

@@ -1,38 +1,47 @@
 <script lang="ts">
-	type Props = {
-		open: boolean;
-		title?: string;
-		message?: string;
+	interface Props {
+		title: string;
+		message: string;
 		confirmLabel?: string;
 		cancelLabel?: string;
-		onConfirm?: () => void;
-		onCancel?: () => void;
-	};
+		onConfirm: () => void;
+		onCancel: () => void;
+	}
 
 	let {
-		open = false,
-		title = 'Confirm action',
-		message = 'Are you sure you want to continue?',
+		title,
+		message,
 		confirmLabel = 'Confirm',
 		cancelLabel = 'Cancel',
-		onConfirm = () => {},
-		onCancel = () => {}
+		onConfirm,
+		onCancel
 	}: Props = $props();
+
+	function handleBackdropClick(e: MouseEvent) {
+		if (e.target === e.currentTarget) onCancel();
+	}
 </script>
 
-{#if open}
-	<dialog
-		class="modal modal-open modal-bottom sm:modal-middle"
+<div
+	class="fixed inset-0 z-[100] flex items-end justify-center bg-black/50 p-4 backdrop-blur-sm sm:items-center"
+	onclick={handleBackdropClick}
+	role="presentation"
+>
+	<div
+		class="w-full max-w-sm overflow-hidden rounded-2xl bg-white p-6 shadow-2xl animate-in fade-in zoom-in-95 slide-in-from-bottom-10 duration-200 sm:slide-in-from-bottom-0"
+		role="dialog"
 		aria-modal="true"
-		onclick={(e) => { if (e.target === e.currentTarget) onCancel(); }}
 	>
-		<div class="modal-box">
-			<h3 class="text-lg font-bold">{title}</h3>
-			<p class="mt-2 text-sm text-base-content/70">{message}</p>
-			<div class="modal-action">
-				<button type="button" class="btn btn-ghost" onclick={onCancel}>{cancelLabel}</button>
-				<button type="button" class="btn btn-error" onclick={onConfirm}>{confirmLabel}</button>
-			</div>
+		<h3 class="text-lg font-bold text-gray-900">{title}</h3>
+		<p class="mt-2 text-sm text-gray-500">{message}</p>
+
+		<div class="mt-6 flex justify-end gap-3">
+			<button type="button" class="btn btn-outline flex-1 sm:flex-none" onclick={onCancel}>
+				{cancelLabel}
+			</button>
+			<button type="button" class="btn bg-red-600 text-white hover:bg-red-700 flex-1 sm:flex-none" onclick={onConfirm}>
+				{confirmLabel}
+			</button>
 		</div>
-	</dialog>
-{/if}
+	</div>
+</div>
