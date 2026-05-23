@@ -117,11 +117,17 @@
 	</section>
 {:else}
 	<div class="space-y-4">
-		<div class="flex flex-wrap items-center gap-3 px-2 md:px-0">
-			<h1 class="text-2xl font-bold text-gray-900">{data.activeSpace.name}</h1>
-			<span class="badge badge-ghost">
-				{data.activeSpace.currency} · {data.activeSpace.format}
-			</span>
+		<div class="flex items-center justify-between px-2 md:px-0">
+			<div class="flex flex-wrap items-center gap-3">
+				<h1 class="text-2xl font-bold text-gray-900">{data.activeSpace.name}</h1>
+				<span class="badge badge-ghost">
+					{data.activeSpace.currency} · {data.activeSpace.format}
+				</span>
+			</div>
+			<a href={exportHref} download class="hidden md:inline-flex btn btn-ghost btn-xs gap-1.5" title="Export CSV">
+				<Download size={14} />
+				<span>Export CSV</span>
+			</a>
 		</div>
 
 		<!-- Transactions -->
@@ -132,13 +138,8 @@
 				categories={data.categories}
 				filterQueryString={data.filterQueryString}
 			/>
-			
-			<div class="flex justify-end px-4 pb-2">
-				<a href={exportHref} download class="btn btn-ghost btn-xs gap-1.5" title="Export CSV">
-					<Download size={14} />
-					<span>Export CSV</span>
-				</a>
-			</div>
+
+
 
 			{#if data.movements.length === 0}
 				<div class="py-12 text-center">

@@ -5,6 +5,18 @@ export interface Category {
 	space_id?: string;
 }
 
+export interface MovementRow {
+	id: string;
+	amount: number;
+	date: string;
+	description: string | null;
+	user_id: string;
+	expense_user_id: string | null;
+	tags: string[] | null;
+	category_id: string | null;
+	costs_categories?: { id: string; name: string; type: string } | null;
+}
+
 export interface Notification {
 	id: string;
 	user_id: string;

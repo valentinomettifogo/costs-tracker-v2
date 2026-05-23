@@ -46,7 +46,13 @@
 
 	function handleClickOutside(node: HTMLElement) {
 		const handleClick = (event: MouseEvent) => {
-			if (node && !node.contains(event.target as Node) && !event.defaultPrevented) {
+			const target = event.target as HTMLElement;
+			if (!target) return;
+
+			// Ignore if the clicked element was removed from the DOM (e.g. by a Svelte update)
+			if (!document.body.contains(target)) return;
+
+			if (node && !node.contains(target) && !event.defaultPrevented) {
 				isUserMenuOpen = false;
 			}
 		};
@@ -65,7 +71,7 @@
 			<!-- Logo -->
 			<div class="flex items-center">
 				<a href="/" class="flex shrink-0 items-center">
-					<img src="/logo.png" alt="Costs Tracker" class="h-10 w-auto" />
+					<img src="/images/logo-navbar.png" alt="Costs Tracker" class="h-10 w-auto" />
 				</a>
 
 				<!-- Desktop Menu -->
@@ -108,9 +114,9 @@
 							class="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border border-gray-200 bg-gray-50 transition-all hover:ring-2 hover:ring-primary/20 focus:outline-none"
 						>
 							{#if avatarUrl}
-								<img src={avatarUrl} alt={displayName} class="h-full w-full object-cover" referrerpolicy="no-referrer" />
+								<img src={avatarUrl} alt={displayName} class="h-full w-full object-cover pointer-events-none" referrerpolicy="no-referrer" />
 							{:else}
-								<span class="text-sm font-semibold text-primary">{initials}</span>
+								<span class="text-sm font-semibold text-primary pointer-events-none">{initials}</span>
 							{/if}
 						</button>
 

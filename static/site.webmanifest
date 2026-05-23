@@ -1,7 +1,7 @@
 {
   "id": "/",
-  "name": "Budget",
-  "short_name": "Budget",
+  "name": "Bloom Budget",
+  "short_name": "Bloom",
   "description": "Track and manage shared expenses with your group.",
   "start_url": "/",
   "scope": "/",
@@ -10,17 +10,17 @@
   "theme_color": "#41b883",
   "icons": [
     {
-      "src": "/icon-192.png",
+      "src": "/icons/web-app-manifest-192x192.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "/icon-512.png",
+      "src": "/icons/web-app-manifest-512x512.png",
       "sizes": "512x512",
       "type": "image/png"
     },
     {
-      "src": "/icon-512.png",
+      "src": "/icons/web-app-manifest-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"

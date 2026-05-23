@@ -60,6 +60,28 @@
 			: `${selectedCategoryIds.length} selected`
 	);
 
+	const typeOrder = ['needs', 'wants', 'savings', 'income'];
+	const typeLabels: Record<string, string> = {
+		needs: 'Needs',
+		wants: 'Wants',
+		savings: 'Savings',
+		income: 'Income'
+	};
+
+	const categoriesByType = $derived(
+		categories.reduce((acc, cat) => {
+			const type = cat.type || 'other';
+			if (!acc[type]) acc[type] = [];
+			acc[type].push(cat);
+			return acc;
+		}, {} as Record<string, Category[]>)
+	);
+
+	const sortedTypes = $derived(
+		[...typeOrder, ...Object.keys(categoriesByType).filter((t) => !typeOrder.includes(t))]
+			.filter((type) => categoriesByType[type] && categoriesByType[type].length > 0)
+	);
+
 	function toggleMaster(checked: boolean) {
 		selectedCategoryIds = checked ? categories.map((c) => c.id) : [];
 	}
@@ -201,7 +223,7 @@
 					</button>
 
 					{#if isCategoryDropdownOpen}
-						<div class="absolute left-0 top-full z-[100] mt-1 w-64 rounded-lg border border-gray-200 bg-white p-2 shadow-xl animate-in fade-in zoom-in-95 duration-100">
+						<div class="absolute left-0 top-full z-100 mt-1 w-64 rounded-lg border border-gray-200 bg-white p-2 shadow-xl animate-in fade-in zoom-in-95 duration-100">
 							<!-- Master Checkbox -->
 							<label class="flex cursor-pointer items-center gap-3 rounded-md px-2 py-1.5 transition-colors hover:bg-gray-50">
 								<input
@@ -217,17 +239,24 @@
 							<div class="my-1 border-t border-gray-100"></div>
 
 							<!-- Individual Categories -->
-							<div class="max-h-60 overflow-y-auto space-y-0.5 custom-scrollbar">
-								{#each categories as cat (cat.id)}
-									<label class="flex cursor-pointer items-center gap-3 rounded-md px-2 py-1.5 transition-colors hover:bg-gray-50">
-										<input
-											type="checkbox"
-											class="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary transition-all cursor-pointer"
-											checked={selectedCategoryIds.includes(cat.id)}
-											onchange={(e) => toggleCategory(cat.id, (e.currentTarget as HTMLInputElement).checked)}
-										/>
-										<span class="text-sm text-gray-600">{cat.name}</span>
-									</label>
+							<div class="max-h-60 overflow-y-auto space-y-3 custom-scrollbar">
+								{#each sortedTypes as type}
+									<div class="space-y-1">
+										<div class="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-gray-400 bg-gray-50 rounded">
+											{typeLabels[type] || type}
+										</div>
+										{#each categoriesByType[type] as cat (cat.id)}
+											<label class="flex cursor-pointer items-center gap-3 rounded-md px-2 py-1 transition-colors hover:bg-gray-50">
+												<input
+													type="checkbox"
+													class="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary transition-all cursor-pointer"
+													checked={selectedCategoryIds.includes(cat.id)}
+													onchange={(e) => toggleCategory(cat.id, (e.currentTarget as HTMLInputElement).checked)}
+												/>
+												<span class="text-sm text-gray-600">{cat.name}</span>
+											</label>
+										{/each}
+									</div>
 								{/each}
 							</div>
 						</div>

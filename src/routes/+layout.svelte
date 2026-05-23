@@ -6,7 +6,6 @@
 </script>
 
 <svelte:head>
-	<link rel="icon" href="/favicon.png" />
 	{#if data.user}
 		<meta name="robots" content="noindex, nofollow" />
 	{/if}

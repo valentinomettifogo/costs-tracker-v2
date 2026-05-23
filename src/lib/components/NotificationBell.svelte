@@ -73,7 +73,13 @@
 
 	function handleClickOutside(node: HTMLElement) {
 		const handleClick = (event: MouseEvent) => {
-			if (node && !node.contains(event.target as Node) && !event.defaultPrevented) {
+			const target = event.target as HTMLElement;
+			if (!target) return;
+
+			// Ignore if the clicked element was removed from the DOM (e.g. by a Svelte update)
+			if (!document.body.contains(target)) return;
+
+			if (node && !node.contains(target) && !event.defaultPrevented) {
 				isOpen = false;
 			}
 		};
@@ -100,9 +106,9 @@
 		onclick={() => (isOpen = !isOpen)}
 		aria-label="Notifications"
 	>
-		<Bell size={20} />
+		<Bell size={20} class="pointer-events-none" />
 		{#if unreadCount > 0}
-			<span class="absolute -right-1 -top-1 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-white shadow-sm ring-2 ring-white">
+			<span class="absolute -right-1 -top-1 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-white shadow-sm ring-2 ring-white pointer-events-none">
 				{badgeLabel}
 			</span>
 		{/if}

@@ -22,7 +22,7 @@
             <div class="flex-1">
                 <div class="relative mx-auto max-w-md lg:max-w-none">
                     <div class="absolute -inset-4 rounded-full bg-primary/10 blur-3xl"></div>
-                    <img src="/demo.png" alt="App Screenshot" class="relative rounded-2xl shadow-2xl border border-gray-200" />
+                    <img src="/images/demo.png" alt="App Screenshot" class="relative rounded-2xl shadow-2xl border border-gray-200" />
                 </div>
             </div>
         </div>

@@ -269,8 +269,8 @@ export const actions: Actions = {
 			parseMovementForm(formData);
 		const recurring = formData.get('recurring') === 'on';
 
-		if (isNaN(amount) || amount <= 0 || !date)
-			return fail(400, { movementError: 'Amount (positive) and date are required.' });
+		if (isNaN(amount) || amount <= 0 || !date || !category_id)
+			return fail(400, { movementError: 'Amount (positive), date, and category are required.' });
 
 		const admin = getAdminClient();
 		if (!admin) return fail(500, { movementError: 'Service unavailable.' });
@@ -348,7 +348,7 @@ export const actions: Actions = {
 			parseMovementForm(formData);
 		const tags = tagsRaw ? tagsRaw.split(',').map((t) => t.trim()).filter(Boolean) : null;
 
-		if (!id || isNaN(amount) || amount <= 0 || !date)
+		if (!id || isNaN(amount) || amount <= 0 || !date || !category_id)
 			return fail(400, { movementError: 'Invalid data.' });
 
 		const admin = getAdminClient();
