@@ -29,7 +29,6 @@
 		"@supabase/supabase-js": "^2.105.3",
 		"chart.js": "^4.5.1",
 		"chartjs-plugin-datalabels": "^2.2.0",
-		"daisyui": "^5.5.19",
 		"lucide-svelte": "^1.0.1"
 	}
 }

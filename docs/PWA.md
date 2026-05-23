@@ -11,9 +11,9 @@ L'app è una Progressive Web App installabile su iOS (e Android) tramite "Aggiun
 | File | Scopo |
 |------|-------|
 | `static/site.webmanifest` | Manifest PWA: nome, icone, tema, display mode |
-| `static/apple-touch-icon.png` | Icona 180×180px per iOS "Aggiungi a schermata Home" |
-| `static/icon-192.png` | Icona 192×192px per Android e manifest |
-| `static/icon-512.png` | Icona 512×512px per Android (usata anche come maskable) |
+| `static/icons/apple-touch-icon.png` | Icona 180×180px per iOS "Aggiungi a schermata Home" |
+| `static/icons/web-app-manifest-192x192.png` | Icona 192×192px per Android e manifest |
+| `static/icons/web-app-manifest-512x512.png` | Icona 512×512px per Android (usata anche come maskable) |
 | `src/app.html` | `<link rel="manifest">`, `theme-color`, `apple-touch-icon` |
 
 ---
@@ -31,7 +31,7 @@ L'app è una Progressive Web App installabile su iOS (e Android) tramite "Aggiun
 **`static/site.webmanifest`**
 - Aggiunto `"id": "/"` → identifica univocamente l'installazione
 - Aggiunto `"scope": "/"` → perimetro della PWA
-- Aggiunta entry icona `icon-512.png` con `"purpose": "maskable"` → icone adaptive Android
+- Aggiunta entry icona `web-app-manifest-512x512.png` con `"purpose": "maskable"` → icone adaptive Android
 
 ### File aggiunti
 

@@ -1,14 +1,31 @@
 @import 'tailwindcss';
 @plugin '@tailwindcss/forms';
 @plugin '@tailwindcss/typography';
-@plugin 'daisyui/index.js';
 
 @theme {
 	--font-sans: 'Be Vietnam Pro', ui-sans-serif, system-ui, sans-serif;
+	--color-primary: var(--color-primary);
+	--color-primary-content: var(--color-primary-content);
+	--color-secondary: var(--color-secondary);
+	--color-secondary-content: var(--color-secondary-content);
+	--color-accent: var(--color-accent);
+	--color-accent-content: var(--color-accent-content);
+	--color-neutral: var(--color-neutral);
+	--color-neutral-content: var(--color-neutral-content);
+	--color-base-100: var(--color-base-100);
+	--color-base-200: var(--color-base-200);
+	--color-base-300: var(--color-base-300);
+	--color-base-content: var(--color-base-content);
+	--color-info: var(--color-info);
+	--color-success: var(--color-success);
+	--color-warning: var(--color-warning);
+	--color-error: var(--color-error);
 }
 
 body {
 	font-family: 'Be Vietnam Pro', ui-sans-serif, system-ui, sans-serif;
+	background-color: var(--color-base-200);
+	color: var(--color-base-content);
 }
 
 :root {
@@ -18,11 +35,11 @@ body {
 	--color-base-300: #e5e7eb;
 	--color-base-content: #111827;
 	--color-primary: #42b883;
-	--color-primary-content: #062a1b;
+	--color-primary-content: #ffffff;
 	--color-secondary: #2f855a;
 	--color-secondary-content: #f5fffa;
 	--color-accent: #42b883;
-	--color-accent-content: #062a1b;
+	--color-accent-content: #ffffff;
 	--color-neutral: #111827;
 	--color-neutral-content: #f9fafb;
 	--color-info: #0ea5e9;
@@ -31,24 +48,45 @@ body {
 	--color-error: #dc2626;
 }
 
+@layer components {
+	/* Base styles for common elements to avoid repetition without DaisyUI */
+	.btn {
+		@apply inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold transition-all active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none;
+	}
+	.btn-primary { @apply bg-primary text-primary-content hover:bg-primary/90 shadow-sm; }
+	.btn-ghost { @apply hover:bg-black/5 text-gray-600; }
+	.btn-outline { @apply border border-gray-300 bg-transparent hover:bg-gray-50 text-gray-700; }
+	.btn-error { @apply bg-error text-white hover:bg-error/90 shadow-sm; }
+	.btn-xs { @apply px-2 py-1 text-xs; }
+	.btn-sm { @apply px-3 py-1.5 text-sm; }
+	.btn-circle { @apply rounded-full p-0 flex items-center justify-center; }
+
+	.badge {
+		@apply inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium;
+	}
+	.badge-primary { @apply bg-primary/10 text-primary; }
+	.badge-ghost { @apply bg-gray-100 text-gray-600; }
+	.badge-sm { @apply text-[10px] px-1.5; }
+
+	.input-base {
+		@apply w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:bg-gray-50 disabled:text-gray-400;
+	}
+}
+
 @media (max-width: 768px) {
-	/* Improve mobile readability and touch ergonomics for all forms */
-	.input,
-	.select,
-	.textarea,
+	/* Improve mobile readability and touch ergonomics */
 	.btn {
-		font-size: 1rem;
-		line-height: 1.25rem;
+		@apply min-h-11 min-w-11 text-base;
+	}
+	.input-base {
+		@apply min-h-11 text-base;
 	}
 
-	.input,
-	.select,
-	.textarea {
-		min-height: 2.75rem;
+	.pt-safe {
+		padding-top: env(safe-area-inset-top);
 	}
 
-	.btn {
-		min-height: 2.75rem;
-		min-width: 2.75rem;
+	.pb-safe {
+		padding-bottom: env(safe-area-inset-bottom);
 	}
 }

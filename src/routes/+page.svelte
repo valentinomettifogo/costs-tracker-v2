@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { MovementRow } from './+page.server';
-	import { Pencil, Trash2, Download } from 'lucide-svelte';
+	import { Pencil, Trash2, Download, PlusCircle } from 'lucide-svelte';
 	import { enhance } from '$app/forms';
 	import { goto } from '$app/navigation';
 	import ConfirmModal from '$lib/components/ConfirmModal.svelte';
@@ -20,24 +20,24 @@
 	let deleteFormEl = $state<HTMLFormElement | undefined>();
 
 	const typeBadgeClass: Record<string, string> = {
-		income: 'badge-success'
+		income: 'bg-green-100 text-green-700 border-green-200'
 	};
 
 	function typeBadgeStyle(type: string | null | undefined): string {
 		const s = data.activeSpace;
-		if (!s || !type) return '';
+		if (!s || !type || type === 'income') return '';
 		const map: Record<string, string> = {
 			needs: s.color_needs,
 			wants: s.color_wants,
 			savings: s.color_savings
 		};
 		const color = map[type];
-		return color ? `background-color:${color};color:#fff;border-color:${color}` : '';
+		return color ? `background-color:${color}15; color:${color}; border-color:${color}30` : '';
 	}
 
 	function amountClass(amount: number, type?: string | null): string {
-		if (type === 'savings') return 'text-yellow-400';
-		return amount >= 0 ? 'text-success' : 'text-error';
+		if (type === 'savings') return 'text-yellow-600';
+		return amount >= 0 ? 'text-green-600' : 'text-red-600';
 	}
 
 	function formatAmount(amount: number): string {
@@ -111,34 +111,40 @@
 {#if !data.user}
 	<LandingPage />
 {:else if !data.activeSpace}
-	<section class="rounded-box bg-base-100 p-10 text-center shadow-sm">
-		<p class="mb-4 text-base-content/60">No active space. Select one from the list.</p>
-		<a href="/spaces" class="btn btn-primary btn-sm">Go to spaces</a>
+	<section class="rounded-2xl bg-white p-12 text-center shadow-sm border border-gray-100">
+		<p class="mb-6 text-gray-500 font-medium">No active space. Select one from the list.</p>
+		<a href="/spaces" class="btn btn-primary">Go to spaces</a>
 	</section>
 {:else}
-	<div class="-mx-3 space-y-2 md:mx-0">
-		<div class="flex flex-wrap items-center gap-2 px-4 pr-20 md:px-0 md:pr-0">
-			<h1 class="text-2xl font-bold">{data.activeSpace.name}</h1>
-			<span class="badge badge-ghost badge-sm">{data.activeSpace.currency} · {data.activeSpace.format}</span>
+	<div class="space-y-4">
+		<div class="flex items-center justify-between px-2 md:px-0">
+			<div class="flex flex-wrap items-center gap-3">
+				<h1 class="text-2xl font-bold text-gray-900">{data.activeSpace.name}</h1>
+				<span class="badge badge-ghost">
+					{data.activeSpace.currency} · {data.activeSpace.format}
+				</span>
+			</div>
+			<a href={exportHref} download class="hidden md:inline-flex btn btn-ghost btn-xs gap-1.5" title="Export CSV">
+				<Download size={14} />
+				<span>Export CSV</span>
+			</a>
 		</div>
 
 		<!-- Transactions -->
-		<section class="rounded-box bg-base-100 p-2 shadow-sm">
+		<section class="rounded-2xl bg-white p-1 shadow-sm border border-gray-100 overflow-visible">
 			<TransactionFilters
 				filters={data.filters}
 				availableYears={data.availableYears}
 				categories={data.categories}
 				filterQueryString={data.filterQueryString}
 			/>
-			<div class="flex justify-end px-2 pb-1">
-				<a href={exportHref} download class="btn btn-ghost btn-xs gap-1" title="Export CSV">
-					<Download size={14} />
-					<span>Export CSV</span>
-				</a>
-			</div>
+
+
 
 			{#if data.movements.length === 0}
-				<p class="text-sm text-base-content/60">No transactions found for the selected filters.</p>
+				<div class="py-12 text-center">
+					<p class="text-sm text-gray-400 font-medium">No transactions found for the selected filters.</p>
+				</div>
 			{:else}
 				<!-- Shared snippets ─────────────────────────────────────── -->
 				{#snippet tagBadges(m: MovementRow)}
@@ -147,7 +153,7 @@
 							{#each m.tags as tag}
 								<a
 									href={buildTagFilterHref(tag, data.filters.tag, data.filterQueryString)}
-									class="badge badge-ghost badge-sm cursor-pointer hover:badge-primary"
+									class="badge badge-ghost cursor-pointer hover:bg-primary/10 hover:text-primary transition-colors"
 								>{tag}</a>
 							{/each}
 						</div>
@@ -156,17 +162,19 @@
 
 				{#snippet typeBadge(type: string)}
 					<span
-						class="badge badge-sm {typeBadgeClass[type] ?? 'badge-ghost'}"
+						class="badge border {typeBadgeClass[type] ?? 'bg-gray-50 text-gray-500 border-gray-100'}"
 						style={typeBadgeStyle(type)}
-					>{type}</span>
+					>
+						{type}
+					</span>
 				{/snippet}
 
 				{#snippet rowActions(m: MovementRow, size: 'xs' | 'sm')}
-					<button class="btn btn-ghost btn-{size}" onclick={() => openEdit(m)} aria-label="Edit">
+					<button class="btn btn-ghost btn-{size} p-2!" onclick={() => openEdit(m)} aria-label="Edit">
 						<Pencil size={size === 'xs' ? 14 : 16} />
 					</button>
 					<button
-						class="btn btn-ghost btn-{size} text-error"
+						class="btn btn-ghost btn-{size} p-2! text-red-500 hover:text-red-600 hover:bg-red-50"
 						type="button"
 						onclick={() => askDeleteConfirmation(m)}
 						aria-label="Delete"
@@ -176,38 +184,44 @@
 				{/snippet}
 
 				<!-- Desktop table ───────────────────────────────────────── -->
-				<div class="hidden overflow-x-auto md:block">
-					<table class="table table-sm w-full">
+				<div class="hidden overflow-x-auto md:block px-2">
+					<table class="w-full text-left border-collapse">
 						<thead>
-							<tr>
-								<th class="text-right">Amount</th>
-								<th>Date</th>
-								<th>Category</th>
-								<th>Type</th>
-								<th>By</th>
-								<th>Tags</th>
-								<th></th>
+							<tr class="border-b border-gray-50 text-[10px] font-bold uppercase tracking-wider text-gray-400">
+								<th class="px-4 py-3 text-right">Amount</th>
+								<th class="px-4 py-3">Date</th>
+								<th class="px-4 py-3">Category</th>
+								<th class="px-4 py-3">Type</th>
+								<th class="px-4 py-3">Paid By</th>
+								<th class="px-4 py-3">Tags</th>
+								<th class="px-4 py-3"></th>
 							</tr>
 						</thead>
-						<tbody>
+						<tbody class="divide-y divide-gray-50">
 							{#each data.movements as m (m.id)}
 								{@const cat = m.costs_categories}
-								<tr class="hover">
-									<td class="text-right font-semibold {amountClass(m.amount, cat?.type)}">
+								<tr class="group transition-colors hover:bg-gray-50/50">
+									<td class="px-4 py-3 text-right {amountClass(m.amount, cat?.type)}">
 										{formatAmount(m.amount)}
 									</td>
-									<td class="whitespace-nowrap text-sm">{formatDate(m.date)}</td>
-									<td>
-										<span class="font-medium">{cat?.name ?? '—'}</span>
-										{#if m.description}<p class="text-xs text-base-content/50">{m.description}</p>{/if}
+									<td class="whitespace-nowrap px-4 py-3 text-sm text-gray-600">
+										{formatDate(m.date)}
 									</td>
-									<td>{#if cat?.type}{@render typeBadge(cat.type)}{/if}</td>
-									<td class="text-xs text-base-content/60">
+									<td class="px-4 py-3">
+										<span class="text-sm font-semibold text-gray-700">{cat?.name ?? '—'}</span>
+										{#if m.description}
+											<p class="text-xs text-gray-400 leading-tight">{m.description}</p>
+										{/if}
+									</td>
+									<td class="px-4 py-3">
+										{#if cat?.type}{@render typeBadge(cat.type)}{/if}
+									</td>
+									<td class="px-4 py-3 text-xs font-medium text-gray-500">
 										{m.expense_user_id ? (data.membersMap[m.expense_user_id] ?? m.expense_user_id.slice(0, 8)) : ''}
 									</td>
-									<td>{@render tagBadges(m)}</td>
-									<td>
-										<div class="flex gap-1">
+									<td class="px-4 py-3">{@render tagBadges(m)}</td>
+									<td class="px-4 py-3">
+										<div class="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
 											{@render rowActions(m, 'xs')}
 										</div>
 									</td>
@@ -218,37 +232,62 @@
 				</div>
 
 				<!-- Mobile card list ────────────────────────────────────── -->
-				<ul class="space-y-2 md:hidden">
+				<div class="md:hidden space-y-2 p-0">
 					{#each data.movements as m (m.id)}
 						{@const cat = m.costs_categories}
-						<li class="rounded-lg border border-base-200 px-3 py-2">
-							<div class="flex min-w-0 flex-wrap items-center gap-1.5">
-								<span class="text-xl font-semibold {amountClass(m.amount, cat?.type)}">{formatAmount(m.amount)}</span>
-								<span class="text-base font-medium">{cat?.name ?? '—'}</span>
-								{#if cat?.type}{@render typeBadge(cat.type)}{/if}
+						<div class="rounded-xl border border-gray-50 bg-white p-3 shadow-sm space-y-2">
+							<!-- Row 1: Header (Amount, Category, Type) -->
+							<div class="flex items-center justify-between gap-3">
+								<div class="flex items-center gap-2 min-w-0">
+									<span class="text-lg {amountClass(m.amount, cat?.type)} whitespace-nowrap">
+										{formatAmount(m.amount)}
+									</span>
+									<span class="h-1 w-1 rounded-full bg-gray-300 shrink-0"></span>
+									<span class="font-bold text-gray-800">{cat?.name ?? '—'}</span>
+								</div>
+								{#if cat?.type}
+									<div class="shrink-0">
+										{@render typeBadge(cat.type)}
+									</div>
+								{/if}
 							</div>
+
+							<!-- Row 2: Description -->
 							{#if m.description}
-								<p class="mt-1 text-sm text-base-content/60">{m.description}</p>
+								<p class="text-sm text-gray-500 leading-tight">{m.description}</p>
 							{/if}
-							<div class="mt-2">{@render tagBadges(m)}</div>
-							<div class="mt-1 flex items-center justify-between gap-2">
-								<div class="flex flex-wrap items-center gap-2 text-sm text-base-content/40">
-									<span>{formatDate(m.date)}</span>
+							
+							<!-- Row 3: Tags -->
+							{#if m.tags?.length}
+								<div class="flex flex-wrap items-center gap-1.5">
+									{@render tagBadges(m)}
+								</div>
+							{/if}
+
+							<!-- Row 4: Footer (Date, User, Actions) -->
+							<div class="mt-1 flex items-center justify-between gap-1 pt-2">
+								<div class="flex flex-wrap items-center gap-2 text-[10px] font-bold text-gray-400 uppercase tracking-wider min-w-0">
+									<span class="whitespace-nowrap">{formatDate(m.date)}</span>
 									{#if m.expense_user_id}
-										<span>· {data.membersMap[m.expense_user_id] ?? m.expense_user_id.slice(0, 8)}</span>
+										<span class="h-1 w-1 rounded-full bg-gray-200 shrink-0"></span>
+										<span class="wrap-break-words">{data.membersMap[m.expense_user_id] ?? m.expense_user_id.slice(0, 8)}</span>
 									{/if}
 								</div>
-								<div class="flex shrink-0 gap-1">
+								<div class="flex items-center gap-1 shrink-0">
 									{@render rowActions(m, 'sm')}
 								</div>
 							</div>
-						</li>
+						</div>
 					{/each}
-				</ul>
+				</div>
 
 				{#if hasMore}
-					<div class="mt-4 text-center">
-						<button type="button" class="btn btn-ghost btn-sm" onclick={() => goto(loadMoreHref, { noScroll: true, keepFocus: true })}>
+					<div class="mt-6 p-4 text-center">
+						<button
+							type="button"
+							class="btn btn-outline btn-sm w-full md:w-auto"
+							onclick={() => goto(loadMoreHref, { noScroll: true, keepFocus: true })}
+						>
 							Load more ({data.totalMovements - data.limit} remaining)
 						</button>
 					</div>
@@ -257,46 +296,48 @@
 		</section>
 	</div>
 
-	<!-- Shared delete form – submitted programmatically from confirmDelete() -->
+	<!-- Shared delete form -->
 	<form bind:this={deleteFormEl} method="POST" action={deleteAction} use:enhance hidden>
 		<input type="hidden" name="id" value={pendingDeleteId ?? ''} />
 	</form>
 
 	<!-- FAB -->
 	<button
-		class="btn btn-primary btn-circle fixed bottom-20 right-4 z-30 h-16 w-16 leading-none shadow-lg md:bottom-8 md:right-8"
-		style="font-size: 2.25rem;"
+		class="fixed bottom-24 right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-white shadow-lg shadow-primary/20 transition-all hover:bg-primary/90 hover:scale-110 active:scale-95 md:bottom-8 md:right-8"
 		type="button"
 		onclick={openCreate}
 		aria-label="Add transaction"
-	>+</button>
+	>
+		<PlusCircle size={28} />
+	</button>
 
-	<MovementFormModal
-		open={showMovementForm}
-		editing={editingMovement}
-		{movementError}
-		filterQueryString={data.filterQueryString}
-		categories={data.categories}
-		membersMap={data.membersMap}
-		userId={data.userId ?? ''}
-		onClose={() => { showMovementForm = false; editingMovement = null; }}
-	/>
+	{#if showMovementForm}
+		<MovementFormModal
+			editing={editingMovement}
+			categories={data.categories}
+			membersMap={data.membersMap}
+			userId={data.userId ?? ''}
+			onClose={() => { showMovementForm = false; editingMovement = null; }}
+		/>
+	{/if}
 
-	<ConfirmModal
-		open={showDeleteConfirmModal}
-		title="Confirm deletion"
-		message={`Do you really want to delete transaction ${pendingDeleteLabel}?`}
-		confirmLabel="Yes, delete"
-		cancelLabel="Cancel"
-		onConfirm={confirmDelete}
-		onCancel={cancelDelete}
-	/>
+	{#if showDeleteConfirmModal}
+		<ConfirmModal
+			title="Confirm deletion"
+			message={`Do you really want to delete transaction ${pendingDeleteLabel}?`}
+			confirmLabel="Yes, delete"
+			cancelLabel="Cancel"
+			onConfirm={confirmDelete}
+			onCancel={cancelDelete}
+		/>
+	{/if}
 
-	<SuccessModal
-		open={showCreateSuccessModal}
-		title="Transaction created"
-		message="The new transaction was saved successfully."
-		buttonLabel="Ok"
-		onClose={() => (showCreateSuccessModal = false)}
-	/>
+	{#if showCreateSuccessModal}
+		<SuccessModal
+			title="Transaction created"
+			message="The new transaction was saved successfully."
+			buttonLabel="Ok"
+			onClose={() => (showCreateSuccessModal = false)}
+		/>
+	{/if}
 {/if}
