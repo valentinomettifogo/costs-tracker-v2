@@ -168,9 +168,9 @@
 </nav>
 
 <!-- Mobile: bottom navigation bar -->
-<nav class="fixed inset-x-0 bottom-0 z-40 border-t border-gray-200 bg-white pb-safe md:hidden">
+<nav class="fixed inset-x-0 bottom-0 z-40 border-t border-gray-200 bg-white md:hidden">
 	{#if user}
-		<ul class="flex h-16 items-stretch justify-around px-2">
+		<ul class="pb-safe flex h-[calc(4rem+env(safe-area-inset-bottom,0))] items-stretch justify-around px-2">
 			<li class="flex-1">
 				<a
 					class={`flex h-full flex-col items-center justify-center gap-1 transition-colors ${currentPathClean === '/' ? 'text-primary' : 'text-gray-500 hover:text-gray-900'}`}
@@ -203,10 +203,3 @@
 		</ul>
 	{/if}
 </nav>
-
-<style>
-	/* Handle safe area for notched devices */
-	.pb-safe {
-		padding-bottom: env(safe-area-inset-bottom);
-	}
-</style>
