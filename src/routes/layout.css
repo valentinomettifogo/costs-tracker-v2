@@ -28,6 +28,14 @@ body {
 	color: var(--color-base-content);
 }
 
+.pt-safe {
+	padding-top: env(safe-area-inset-top, 0px);
+}
+
+.pb-safe {
+	padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
 :root {
 	/* Vue-like light palette: white/gray base with green accent and near-black text */
 	--color-base-100: #ffffff;
@@ -80,13 +88,5 @@ body {
 	}
 	.input-base {
 		@apply min-h-11 text-base;
-	}
-
-	.pt-safe {
-		padding-top: env(safe-area-inset-top);
-	}
-
-	.pb-safe {
-		padding-bottom: env(safe-area-inset-bottom);
 	}
 }

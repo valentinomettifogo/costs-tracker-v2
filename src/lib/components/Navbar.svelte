@@ -65,7 +65,7 @@
 	}
 </script>
 
-<nav class="sticky top-0 z-50 border-b border-gray-200 bg-white/90 backdrop-blur-md">
+<nav class="pt-safe sticky top-0 z-50 border-b border-gray-200 bg-white/90 backdrop-blur-md">
 	<div class="mx-auto max-w-6xl px-4">
 		<div class="flex h-16 items-center justify-between">
 			<!-- Logo -->
