@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { supabase } from '$lib/supabaseClient';
 	import type { Notification } from '$lib/types';
-	import { Bell, BellOff, Check, Trash2 } from 'lucide-svelte';
+	import { Bell } from 'lucide-svelte';
 	import { onMount } from 'svelte';
 
 	interface Props {
@@ -15,6 +15,24 @@
 	let locallyReadIds = $state<string[]>([]);
 	let allDeleted = $state(false);
 	let isOpen = $state(false);
+	let readTimer: ReturnType<typeof setTimeout> | null = null;
+
+	$effect(() => {
+		if (!isOpen) return;
+		const unreadIds = mergedNotifications.filter((n) => !n.read).map((n) => n.id);
+		if (unreadIds.length === 0) return;
+		readTimer = setTimeout(() => {
+			locallyReadIds = [...new Set([...locallyReadIds, ...unreadIds])];
+			fetch('/notifications', {
+				method: 'PATCH',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ all: true })
+			});
+		}, 2000);
+		return () => {
+			if (readTimer) clearTimeout(readTimer);
+		};
+	});
 
 	const mergedNotifications = $derived(
 		allDeleted
@@ -55,20 +73,10 @@
 		};
 	});
 
-	async function markRead(id: string) {
-		locallyReadIds = [...locallyReadIds, id];
-		await supabase.from('costs_notifications').update({ read: true }).eq('id', id);
-	}
-
-	async function deleteNotif(id: string) {
-		liveItems = liveItems.filter((n) => n.id !== id);
-		await supabase.from('costs_notifications').delete().eq('id', id);
-	}
-
 	async function clearAll() {
 		allDeleted = true;
 		isOpen = false;
-		await supabase.from('costs_notifications').delete().eq('user_id', userId);
+		await fetch('/notifications', { method: 'DELETE' });
 	}
 
 	function handleClickOutside(node: HTMLElement) {
@@ -89,6 +97,16 @@
 				document.removeEventListener('click', handleClick, true);
 			}
 		};
+	}
+
+	function formatNotifDate(isoStr: string): string {
+		const d = new Date(isoStr);
+		const day = String(d.getDate()).padStart(2, '0');
+		const month = String(d.getMonth() + 1).padStart(2, '0');
+		const year = d.getFullYear();
+		const hours = String(d.getHours()).padStart(2, '0');
+		const minutes = String(d.getMinutes()).padStart(2, '0');
+		return `${day}/${month}/${year} · ${hours}:${minutes}`;
 	}
 
 	function getNotificationContent(n: Notification) {
@@ -141,39 +159,15 @@
 					<ul class="divide-y divide-gray-50">
 						{#each mergedNotifications as n (n.id)}
 							{@const content = getNotificationContent(n)}
-							<li class="group relative flex flex-col p-4 transition-colors hover:bg-gray-50 {n.read ? 'opacity-60' : ''}">
-								<div class="flex items-start justify-between gap-3">
-									<div class="flex-1">
-										<p class="text-sm font-medium text-gray-900">{content.title}</p>
-										<p class="mt-0.5 text-xs text-gray-500 leading-relaxed">{content.message}</p>
-										{#if n.description}
-											<p class="mt-1 text-[11px] italic text-gray-400">"{n.description}"</p>
-										{/if}
-										<p class="mt-2 text-[10px] text-gray-400 font-medium uppercase tracking-wider">
-											{new Date(n.created_at).toLocaleDateString()} · {new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-										</p>
-									</div>
-									<div class="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-										{#if !n.read}
-											<button
-												type="button"
-												class="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
-												onclick={() => markRead(n.id)}
-												title="Mark as read"
-											>
-												<Check size={14} />
-											</button>
-										{/if}
-										<button
-											type="button"
-											class="flex h-7 w-7 items-center justify-center rounded-full bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
-											onclick={() => deleteNotif(n.id)}
-											title="Delete"
-										>
-											<Trash2 size={14} />
-										</button>
-									</div>
-								</div>
+							<li class="relative flex flex-col p-4 transition-colors hover:bg-gray-50 {n.read ? 'opacity-60' : ''}">
+								<p class="text-sm font-medium text-gray-900">{content.title}</p>
+								<p class="mt-0.5 text-xs text-gray-500 leading-relaxed">{content.message}</p>
+								{#if n.description}
+									<p class="mt-1 text-[11px] italic text-gray-400">"{n.description}"</p>
+								{/if}
+								<p class="mt-2 text-[10px] text-gray-400 font-medium uppercase tracking-wider">
+									{formatNotifDate(n.created_at)}
+								</p>
 								{#if !n.read}
 									<span class="absolute left-1.5 top-5 h-1.5 w-1.5 rounded-full bg-primary"></span>
 								{/if}

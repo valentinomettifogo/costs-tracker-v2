@@ -1,25 +1,35 @@
 import { redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
-import { getAdminClient } from '$lib/server/auth';
-import { scanAvailableYears, withCache } from '$lib/server/movements';
+import { withCache, buildAvailableYearsFromRange } from '$lib/server/movements';
 import { parseUrlFilters, buildDateRange } from '$lib/server/filters';
 
 const MAX_STATS_ROWS = 5000;
 
-type Category = {
-	id: string;
+type Category = { id: string; name: string; type: string };
+
+// Same shape and SELECT as v_space_home_bootstrap — all fields fetched so the
+// in-memory cache is fully compatible with the homepage cache (same key).
+type BootstrapViewRow = {
+	space_id: string;
 	name: string;
-	type: string;
+	currency: string;
+	format: string;
+	owner_id: string;
+	color_needs: string;
+	color_wants: string;
+	color_savings: string;
+	target_needs: number;
+	target_wants: number;
+	target_savings: number;
+	categories: Category[] | null;
+	members_map: Record<string, string> | null;
+	oldest_movement_date: string | null;
+	newest_movement_date: string | null;
 };
 
-export type MovementRow = {
-	id: string;
-	amount: number;
-	date: string;
-	description: string | null;
-	category_id: string | null;
-	costs_categories: { id: string; name: string; type: string } | null;
-};
+export type StatsTotals = { income: number; needs: number; wants: number; savings: number };
+export type CategoryTotal = { name: string; total: number };
+export type MonthlyPoint = { label: string; sortKey: string; income: number; expenses: number };
 
 export const load: PageServerLoad = async ({ locals, url }) => {
 	const { user } = await locals.safeGetSession();
@@ -28,7 +38,9 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	const activeSpaceId = (user.user_metadata?.active_space_id as string | undefined) ?? null;
 
 	const empty = {
-		movements: [] as MovementRow[],
+		totals: { income: 0, needs: 0, wants: 0, savings: 0 } as StatsTotals,
+		categoryTotals: [] as CategoryTotal[],
+		monthlyTrend: [] as MonthlyPoint[],
 		categories: [] as Category[],
 		availableYears: [] as number[],
 		hasActiveSpace: false,
@@ -54,46 +66,30 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 
 	if (!activeSpaceId) return empty;
 
-	const admin = getAdminClient();
-	const movementsClient = admin ?? locals.supabase;
-
-	type StatsSpaceData = {
-		currency: string; format: string;
-		color_needs: string; color_wants: string; color_savings: string;
-		target_needs: number; target_wants: number; target_savings: number;
-	};
-
-	// Run conn-check + all stable queries in parallel; cache space/categories/years
-	// so filter changes only trigger the movements query.
-	const [connResult, space, categories, availableYears] = await Promise.all([
-		locals.supabase
-			.from('costs_spaces_connections')
-			.select('space_id')
-			.eq('space_id', activeSpaceId)
-			.eq('user_id', user.id)
-			.maybeSingle(),
-		withCache<StatsSpaceData | null>(`stats-space:${activeSpaceId}`, 60_000, async () => {
+	// Reuse the same cache key as the homepage — warm if the user came from home.
+	// Both pages use an identical SELECT so the cached value is always complete.
+	const bootstrap = await withCache<BootstrapViewRow | null>(
+		`home-bootstrap:${user.id}:${activeSpaceId}`,
+		60_000,
+		async () => {
 			const { data } = await locals.supabase
-				.from('costs_spaces')
-				.select('currency, format, color_needs, color_wants, color_savings, target_needs, target_wants, target_savings')
-				.eq('id', activeSpaceId)
-				.single();
-			return data as StatsSpaceData | null;
-		}),
-		withCache<Category[]>(`stats-categories:${activeSpaceId}`, 60_000, async () => {
-			const { data } = await locals.supabase
-				.from('costs_categories')
-				.select('id, name, type')
+				.from('v_space_home_bootstrap')
+				.select(
+					'space_id, name, currency, format, owner_id, color_needs, color_wants, color_savings, target_needs, target_wants, target_savings, categories, members_map, oldest_movement_date, newest_movement_date'
+				)
 				.eq('space_id', activeSpaceId)
-				.order('name');
-			return (data as Category[]) ?? [];
-		}),
-		withCache<number[]>(`years:${activeSpaceId}`, 60_000, () =>
-			scanAvailableYears(movementsClient, activeSpaceId)
-		)
-	]);
+				.maybeSingle();
+			return (data as BootstrapViewRow | null) ?? null;
+		}
+	);
 
-	if (!connResult.data) return empty;
+	if (!bootstrap) return empty;
+
+	const categories = (bootstrap.categories ?? []) as Category[];
+	const availableYears = buildAvailableYearsFromRange(
+		bootstrap.oldest_movement_date,
+		bootstrap.newest_movement_date
+	);
 
 	const filters = parseUrlFilters(url, {
 		availableYears,
@@ -112,9 +108,10 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 
 	const categoryRelation = filters.type ? 'costs_categories!inner' : 'costs_categories';
 
-	let movementsQuery = movementsClient
+	// Lean SELECT: only what aggregation needs — no id, description, user_id, etc.
+	let movementsQuery = locals.supabase
 		.from('costs_movements')
-		.select(`id, amount, date, description, category_id, ${categoryRelation}(id, name, type)`)
+		.select(`amount, date, ${categoryRelation}(name, type)`)
 		.eq('space_id', activeSpaceId)
 		.order('date', { ascending: true });
 
@@ -125,21 +122,65 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	if (filters.query) movementsQuery = movementsQuery.ilike('description', `%${filters.query}%`);
 	if (filters.tag) movementsQuery = movementsQuery.contains('tags', [filters.tag]);
 
-	const { data: movements } = await movementsQuery.range(0, MAX_STATS_ROWS - 1);
+	const { data: rawMovements, error: movError } = await movementsQuery.range(0, MAX_STATS_ROWS - 1);
+	if (movError) console.error('[stats movements load]', movError);
+
+	// ─── Server-side aggregation ─────────────────────────────────────────────
+	// Only the aggregated result reaches the browser — no raw rows serialised.
+	type RawRow = { amount: number; date: string; costs_categories: { name: string; type: string } | null };
+	const rows = (rawMovements as unknown as RawRow[]) ?? [];
+
+	const totals: StatsTotals = { income: 0, needs: 0, wants: 0, savings: 0 };
+	const catMap = new Map<string, number>();
+	const monthMap = new Map<string, MonthlyPoint>();
+
+	for (const m of rows) {
+		const type = m.costs_categories?.type;
+		const catName = m.costs_categories?.name ?? 'Uncategorized';
+		const sortKey = m.date.slice(0, 7); // "YYYY-MM"
+		const label = new Date(m.date + 'T00:00:00').toLocaleString('en-US', {
+			month: 'short',
+			year: '2-digit'
+		});
+
+		if (type === 'income') totals.income += m.amount;
+		else if (type === 'needs') totals.needs += Math.abs(m.amount);
+		else if (type === 'wants') totals.wants += Math.abs(m.amount);
+		else if (type === 'savings') totals.savings += Math.abs(m.amount);
+
+		if (type !== 'income') {
+			catMap.set(catName, (catMap.get(catName) ?? 0) + Math.abs(m.amount));
+		}
+
+		if (!monthMap.has(label)) monthMap.set(label, { label, sortKey, income: 0, expenses: 0 });
+		const month = monthMap.get(label)!;
+		if (type === 'income') month.income += m.amount;
+		else month.expenses += Math.abs(m.amount);
+	}
+
+	const categoryTotals: CategoryTotal[] = Array.from(catMap.entries())
+		.map(([name, total]) => ({ name, total }))
+		.sort((a, b) => b.total - a.total);
+
+	const monthlyTrend: MonthlyPoint[] = Array.from(monthMap.values()).sort((a, b) =>
+		a.sortKey.localeCompare(b.sortKey)
+	);
 
 	return {
-		movements: (movements as unknown as MovementRow[]) ?? [],
-		categories: (categories as Category[]) ?? [],
+		totals,
+		categoryTotals,
+		monthlyTrend,
+		categories,
 		availableYears,
 		hasActiveSpace: true,
-		currency: space?.currency ?? 'EUR',
-		format: space?.format ?? 'EN',
-		colorNeeds: space?.color_needs ?? '#fbbf24',
-		colorWants: space?.color_wants ?? '#38bdf8',
-		colorSavings: space?.color_savings ?? '#a78bfa',
-		targetNeeds: space?.target_needs ?? 50,
-		targetWants: space?.target_wants ?? 30,
-		targetSavings: space?.target_savings ?? 20,
+		currency: bootstrap.currency ?? 'EUR',
+		format: bootstrap.format ?? 'EN',
+		colorNeeds: bootstrap.color_needs ?? '#fbbf24',
+		colorWants: bootstrap.color_wants ?? '#38bdf8',
+		colorSavings: bootstrap.color_savings ?? '#a78bfa',
+		targetNeeds: bootstrap.target_needs ?? 50,
+		targetWants: bootstrap.target_wants ?? 30,
+		targetSavings: bootstrap.target_savings ?? 20,
 		filters,
 		filterQueryString: new URLSearchParams(url.searchParams).toString()
 	};

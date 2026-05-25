@@ -3,17 +3,16 @@
 	import { invalidateAll, goto } from '$app/navigation';
 	import NotificationBell from '$lib/components/NotificationBell.svelte';
 	import type { Notification } from '$lib/types';
-	import { LogOut, LayoutGrid, BarChart3, Users, Shield, Menu, X } from 'lucide-svelte';
+	import { LogOut, LayoutGrid, BarChart3, Users } from 'lucide-svelte';
 
 	interface Props {
 		user: { id?: string; email?: string; user_metadata?: Record<string, unknown> } | null;
 		role: string | null;
-		isAdmin: boolean;
 		currentPath: string;
 		notifications: Notification[];
 	}
 
-	let { user, role, isAdmin, currentPath, notifications }: Props = $props();
+	let { user, role, currentPath, notifications }: Props = $props();
 
 	const userId = $derived(user?.id ?? '');
 
@@ -88,14 +87,6 @@
 							class="rounded-lg px-3 py-2 text-sm font-medium transition-colors {currentPathClean === '/statistics' ? 'bg-primary/10 text-primary' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}"
 						>
 							Statistics
-						</a>
-					{/if}
-					{#if isAdmin}
-						<a
-							href="/admin"
-							class="rounded-lg px-3 py-2 text-sm font-medium transition-colors {currentPath === '/admin' ? 'bg-accent/10 text-accent' : 'text-accent hover:bg-accent/10'}"
-						>
-							Admin
 						</a>
 					{/if}
 				</div>
@@ -189,17 +180,6 @@
 					<span class="text-[10px] font-medium">Stats</span>
 				</a>
 			</li>
-			{#if isAdmin}
-				<li class="flex-1">
-					<a
-						class={`flex h-full flex-col items-center justify-center gap-1 transition-colors ${currentPathClean === '/admin' ? 'text-accent' : 'text-gray-500 hover:text-gray-900'}`}
-						href="/admin"
-					>
-						<Shield size={20} />
-						<span class="text-[10px] font-medium">Admin</span>
-					</a>
-				</li>
-			{/if}
 		</ul>
 	{/if}
 </nav>

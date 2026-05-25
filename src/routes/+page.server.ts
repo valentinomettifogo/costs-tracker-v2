@@ -1,7 +1,7 @@
 import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { getAdminClient } from '$lib/server/auth';
-import { scanAvailableYears, withCache, resolveCategorySign } from '$lib/server/movements';
+import { withCache, resolveCategorySign, buildAvailableYearsFromRange } from '$lib/server/movements';
 import { parseUrlFilters, buildDateRange } from '$lib/server/filters';
 
 const DEFAULT_LIMIT = 20;
@@ -27,6 +27,24 @@ type Category = {
 	name: string;
 	type: string;
 	space_id: string;
+};
+
+type HomeBootstrapViewRow = {
+	space_id: string;
+	name: string;
+	currency: string;
+	format: string;
+	owner_id: string;
+	color_needs: string;
+	color_wants: string;
+	color_savings: string;
+	target_needs: number;
+	target_wants: number;
+	target_savings: number;
+	categories: Category[] | null;
+	members_map: Record<string, string> | null;
+	oldest_movement_date: string | null;
+	newest_movement_date: string | null;
 };
 
 export type MovementRow = {
@@ -70,67 +88,44 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	const activeSpaceId = (user.user_metadata?.active_space_id as string | undefined) ?? null;
 	if (!activeSpaceId) return empty;
 
-	const { data: conn } = await locals.supabase
-		.from('costs_spaces_connections')
-		.select('space_id')
-		.eq('space_id', activeSpaceId)
-		.eq('user_id', user.id)
-		.maybeSingle();
-
-	if (!conn) return empty;
-
-	// Resolve admin client (sync), then run space + categories + years + membersMap
-	// all in parallel. Stable data is cached for 60 s so filter changes only
-	// trigger the movements query, not the full waterfall.
-	const admin = getAdminClient();
-	const movementsClient = admin ?? locals.supabase;
-
-	const [space, categories, availableYears, membersMap] = await Promise.all([
-		withCache<Space | null>(`home-space:${activeSpaceId}`, 60_000, async () => {
+	// Read home bootstrap data from a single view query. This collapses
+	// membership + space + categories + movement year-range lookups.
+	const bootstrap = await withCache<HomeBootstrapViewRow | null>(
+		`home-bootstrap:${user.id}:${activeSpaceId}`,
+		60_000,
+		async () => {
 			const { data } = await locals.supabase
-				.from('costs_spaces')
-				.select('id, name, currency, format, owner_id, color_needs, color_wants, color_savings, target_needs, target_wants, target_savings')
-				.eq('id', activeSpaceId)
-				.single();
-			return data as Space | null;
-		}),
-		withCache<Category[]>(`home-categories:${activeSpaceId}`, 60_000, async () => {
-			const { data } = await locals.supabase
-				.from('costs_categories')
-				.select('id, name, type, space_id')
+				.from('v_space_home_bootstrap')
+				.select(
+					'space_id, name, currency, format, owner_id, color_needs, color_wants, color_savings, target_needs, target_wants, target_savings, categories, members_map, oldest_movement_date, newest_movement_date'
+				)
 				.eq('space_id', activeSpaceId)
-				.order('name');
-			return (data as Category[]) ?? [];
-		}),
-		withCache<number[]>(`years:${activeSpaceId}`, 60_000, () =>
-			scanAvailableYears(movementsClient, activeSpaceId)
-		),
-		admin
-			? withCache<Record<string, string>>(`membersMap:${activeSpaceId}`, 5 * 60_000, async () => {
-					const map: Record<string, string> = {};
-					const { data: connections } = await admin
-						.from('costs_spaces_connections')
-						.select('user_id')
-						.eq('space_id', activeSpaceId);
-					if (connections) {
-						await Promise.all(
-							connections.map(async (c: { user_id: string }) => {
-								const { data } = await admin.auth.admin.getUserById(c.user_id);
-								const u = data.user;
-								map[c.user_id] =
-									u?.user_metadata?.display_name ??
-									u?.user_metadata?.full_name ??
-									u?.email ??
-									c.user_id.slice(0, 8);
-							})
-						);
-					}
-					return map;
-				})
-			: Promise.resolve({} as Record<string, string>)
-	]);
+				.maybeSingle();
+			return (data as HomeBootstrapViewRow | null) ?? null;
+		}
+	);
 
-	if (!space) return empty;
+	if (!bootstrap) return empty;
+
+	const space: Space = {
+		id: bootstrap.space_id,
+		name: bootstrap.name,
+		currency: bootstrap.currency,
+		format: bootstrap.format,
+		owner_id: bootstrap.owner_id,
+		color_needs: bootstrap.color_needs,
+		color_wants: bootstrap.color_wants,
+		color_savings: bootstrap.color_savings,
+		target_needs: bootstrap.target_needs,
+		target_wants: bootstrap.target_wants,
+		target_savings: bootstrap.target_savings
+	};
+	const categories = (bootstrap.categories ?? []) as Category[];
+	const availableYears = buildAvailableYearsFromRange(
+		bootstrap.oldest_movement_date,
+		bootstrap.newest_movement_date
+	);
+	const membersMap = bootstrap.members_map ?? {};
 
 	const limitParam = parseInt(url.searchParams.get('limit') ?? String(DEFAULT_LIMIT), 10);
 	const limit =
@@ -154,7 +149,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 
 	const categoryRelation = filters.type ? 'costs_categories!inner' : 'costs_categories';
 
-	let movementsQuery = movementsClient
+	let movementsQuery = locals.supabase
 		.from('costs_movements')
 		.select(
 			`id, amount, date, description, user_id, expense_user_id, tags, category_id, ${categoryRelation}(id, name, type)`,
@@ -170,7 +165,8 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	if (filters.query) movementsQuery = movementsQuery.ilike('description', `%${filters.query}%`);
 	if (filters.tag) movementsQuery = movementsQuery.contains('tags', [filters.tag]);
 
-	const { data: movements, count } = await movementsQuery.range(0, limit - 1);
+	const { data: movements, count, error: movError } = await movementsQuery.range(0, limit - 1);
+	if (movError) console.error('[movements load]', movError);
 
 	const filterParams = new URLSearchParams(url.searchParams);
 	filterParams.delete('limit');

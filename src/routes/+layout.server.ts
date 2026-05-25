@@ -22,7 +22,6 @@ export const load: LayoutServerLoad = async ({ locals, url }) => {
 	return {
 		user,
 		role,
-		isAdmin: role === 'admin',
 		currentPath: `${url.pathname}${url.search}`,
 		notifications
 	};

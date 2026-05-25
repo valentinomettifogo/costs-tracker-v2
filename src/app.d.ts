@@ -14,7 +14,6 @@ declare global {
 		interface PageData {
 			user: User | null;
 			role: string | null;
-			isAdmin: boolean;
 			currentPath: string;
 		}
 		// interface PageState {}

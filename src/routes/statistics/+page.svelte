@@ -9,33 +9,12 @@
 		Wallet,
 	} from "lucide-svelte";
 	import TransactionFilters from "$lib/components/TransactionFilters.svelte";
-	import type { MovementRow } from "./+page.server";
-
-	// --- TYPES ---
-	interface Totals {
-		income: number;
-		needs: number;
-		wants: number;
-		savings: number;
-	}
 
 	// --- DATA ---
 	let { data } = $props();
 
-	// --- DERIVED TOTALS ---
-	let totals = $derived.by<Totals>(() => {
-		return (data.movements as MovementRow[]).reduce<Totals>(
-			(acc, m) => {
-				const type = m.costs_categories?.type;
-				if (type === "income") acc.income += m.amount;
-				else if (type === "needs") acc.needs += Math.abs(m.amount);
-				else if (type === "wants") acc.wants += Math.abs(m.amount);
-				else if (type === "savings") acc.savings += Math.abs(m.amount);
-				return acc;
-			},
-			{ income: 0, needs: 0, wants: 0, savings: 0 },
-		);
-	});
+	// --- TOTALS (aggregated server-side) ---
+	const totals = $derived(data.totals);
 
 	// --- IDLE MONEY ---
 	let idleMoney = $derived(
@@ -70,49 +49,6 @@
 		savings: data.colorSavings,
 	});
 
-	// --- CHART DATA ---
-	let categoryData = $derived.by(() => {
-		const cats: Record<string, number> = {};
-		(data.movements as MovementRow[])
-			.filter((m) => m.costs_categories?.type !== "income")
-			.forEach((m) => {
-				const name = m.costs_categories?.name ?? "Uncategorized";
-				cats[name] = (cats[name] || 0) + Math.abs(m.amount);
-			});
-		return cats;
-	});
-
-	let monthlyTrend = $derived.by(() => {
-		const months: Record<
-			string,
-			{ income: number; expenses: number; sortKey: string }
-		> = {};
-		(data.movements as MovementRow[]).forEach((m) => {
-			const sortKey = m.date.slice(0, 7);
-			const label = new Date(m.date + "T00:00:00").toLocaleString(
-				"en-US",
-				{
-					month: "short",
-					year: "2-digit",
-				},
-			);
-			if (!months[label])
-				months[label] = { income: 0, expenses: 0, sortKey };
-			if (m.costs_categories?.type === "income")
-				months[label].income += m.amount;
-			else months[label].expenses += Math.abs(m.amount);
-		});
-		return Object.entries(months)
-			.sort(([, a], [, b]) => a.sortKey.localeCompare(b.sortKey))
-			.reduce<Record<string, { income: number; expenses: number }>>(
-				(acc, [k, v]) => {
-					acc[k] = { income: v.income, expenses: v.expenses };
-					return acc;
-				},
-				{},
-			);
-	});
-
 	// --- CHART LIFECYCLE ---
 	const CHART_COLORS = [
 		"#42b883",
@@ -134,15 +70,12 @@
 	$effect(() => {
 		if (!pieCanvas || !lineCanvas) return;
 
-		const catData = categoryData;
-		const trend = monthlyTrend;
-
 		pieChart?.destroy();
 		lineChart?.destroy();
 
-		const catLabels = Object.keys(catData);
-		const catValues = Object.values(catData);
-		const trendLabels = Object.keys(trend);
+		const catLabels = data.categoryTotals.map((c) => c.name);
+		const catValues = data.categoryTotals.map((c) => c.total);
+		const trendLabels = data.monthlyTrend.map((m) => m.label);
 		const total = catValues.reduce((s, v) => s + v, 0);
 
 		pieChart = new Chart(pieCanvas, {
@@ -193,7 +126,7 @@
 				datasets: [
 					{
 						label: "Income",
-						data: trendLabels.map((m) => trend[m].income),
+						data: data.monthlyTrend.map((m) => m.income),
 						borderColor: "#42b883",
 						backgroundColor: "rgba(66, 184, 131, 0.1)",
 						tension: 0.4,
@@ -204,7 +137,7 @@
 					},
 					{
 						label: "Expenses",
-						data: trendLabels.map((m) => trend[m].expenses),
+						data: data.monthlyTrend.map((m) => m.expenses),
 						borderColor: "#ef4444",
 						backgroundColor: "rgba(239, 68, 68, 0.1)",
 						tension: 0.4,
@@ -322,7 +255,7 @@
 			resetHref="/statistics"
 		/>
 
-		{#if data.movements.length === 0}
+		{#if data.monthlyTrend.length === 0}
 			<div
 				class="rounded-2xl bg-white p-12 text-center shadow-sm border border-gray-100"
 			>

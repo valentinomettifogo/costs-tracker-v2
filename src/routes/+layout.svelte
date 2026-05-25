@@ -15,7 +15,6 @@
 	<Navbar
 		user={data.user}
 		role={data.role}
-		isAdmin={data.isAdmin}
 		currentPath={data.currentPath}
 		notifications={data.notifications ?? []}
 	/>
