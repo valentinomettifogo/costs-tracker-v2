@@ -201,7 +201,7 @@
 							{#each data.movements as m (m.id)}
 								{@const cat = m.costs_categories}
 								<tr class="group transition-colors hover:bg-gray-50/50">
-									<td class="px-4 py-3 text-right {amountClass(m.amount, cat?.type)}">
+									<td class="px-4 py-3 text-right font-bold  {amountClass(m.amount, cat?.type)}">
 										{formatAmount(m.amount)}
 									</td>
 									<td class="whitespace-nowrap px-4 py-3 text-sm text-gray-600">
@@ -235,11 +235,11 @@
 				<div class="md:hidden space-y-2 p-0">
 					{#each data.movements as m (m.id)}
 						{@const cat = m.costs_categories}
-						<div class="rounded-xl border border-gray-50 bg-white p-3 shadow-sm space-y-2">
+						<div class="rounded-xl border border-gray-50 bg-white px-3 pt-3 pb-2 shadow-sm space-y-1.5">
 							<!-- Row 1: Header (Amount, Category, Type) -->
 							<div class="flex items-center justify-between gap-3">
 								<div class="flex items-center gap-2 min-w-0">
-									<span class="text-lg {amountClass(m.amount, cat?.type)} whitespace-nowrap">
+									<span class="text-lg font-bold {amountClass(m.amount, cat?.type)} whitespace-nowrap">
 										{formatAmount(m.amount)}
 									</span>
 									<span class="h-1 w-1 rounded-full bg-gray-300 shrink-0"></span>
@@ -265,7 +265,7 @@
 							{/if}
 
 							<!-- Row 4: Footer (Date, User, Actions) -->
-							<div class="mt-1 flex items-center justify-between gap-1 pt-2">
+							<div class="flex items-center justify-between gap-1">
 								<div class="flex flex-wrap items-center gap-2 text-[10px] font-bold text-gray-400 uppercase tracking-wider min-w-0">
 									<span class="whitespace-nowrap">{formatDate(m.date)}</span>
 									{#if m.expense_user_id}
@@ -274,7 +274,7 @@
 									{/if}
 								</div>
 								<div class="flex items-center gap-1 shrink-0">
-									{@render rowActions(m, 'sm')}
+									{@render rowActions(m, 'xs')}
 								</div>
 							</div>
 						</div>
@@ -334,9 +334,7 @@
 
 	{#if showCreateSuccessModal}
 		<SuccessModal
-			title="Transaction created"
-			message="The new transaction was saved successfully."
-			buttonLabel="Ok"
+			message="Transaction saved successfully."
 			onClose={() => (showCreateSuccessModal = false)}
 		/>
 	{/if}

@@ -274,7 +274,7 @@
 							<TrendingUp size={14} />
 						</div>
 					</div>
-					<div class="text-lg font-black text-green-600 truncate leading-none">
+					<div class="text-2xl font-black text-green-600 truncate leading-none">
 						{formatCurrency(totals.income)}
 					</div>
 					<div class="mt-4 space-y-1.5">
@@ -298,7 +298,7 @@
 							<Wallet size={14} />
 						</div>
 					</div>
-					<div class="text-lg font-black truncate leading-none" style="color:{colors.needs}">
+					<div class="text-2xl font-black truncate leading-none" style="color:{colors.needs}">
 						{formatCurrency(totals.needs)}
 					</div>
 					<div class="mt-4 space-y-1.5">
@@ -320,7 +320,7 @@
 							<TrendingDown size={14} />
 						</div>
 					</div>
-					<div class="text-lg font-black truncate leading-none" style="color:{colors.wants}">
+					<div class="text-2xl font-black truncate leading-none" style="color:{colors.wants}">
 						{formatCurrency(totals.wants)}
 					</div>
 					<div class="mt-4 space-y-1.5">
@@ -342,7 +342,7 @@
 							<PiggyBank size={14} />
 						</div>
 					</div>
-					<div class="text-lg font-black truncate leading-none" style="color:{colors.savings}">
+					<div class="text-2xl font-black truncate leading-none" style="color:{colors.savings}">
 						{formatCurrency(totals.savings)}
 					</div>
 					<div class="mt-4 space-y-1.5">

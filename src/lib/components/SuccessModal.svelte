@@ -2,40 +2,42 @@
 	import { CheckCircle2 } from 'lucide-svelte';
 
 	interface Props {
-		title: string;
 		message: string;
-		buttonLabel?: string;
+		duration?: number;
 		onClose: () => void;
 	}
 
-	let { title, message, buttonLabel = 'Done', onClose }: Props = $props();
+	let { message, duration = 3000, onClose }: Props = $props();
 
-	function handleBackdropClick(e: MouseEvent) {
-		if (e.target === e.currentTarget) onClose();
-	}
+	let visible = $state(false);
+
+	$effect(() => {
+		// Trigger enter animation on next frame
+		const raf = requestAnimationFrame(() => { visible = true; });
+
+		const timer = setTimeout(() => {
+			visible = false;
+			setTimeout(onClose, 300); // wait for exit animation
+		}, duration);
+
+		return () => {
+			cancelAnimationFrame(raf);
+			clearTimeout(timer);
+		};
+	});
 </script>
 
 <div
-	class="fixed inset-0 z-[100] flex items-end justify-center bg-black/50 p-4 backdrop-blur-sm sm:items-center"
-	onclick={handleBackdropClick}
-	role="presentation"
+	role="status"
+	aria-live="polite"
+	class="fixed top-4 left-1/2 z-[100] -translate-x-1/2 transition-all duration-300"
+	class:opacity-0={!visible}
+	class:opacity-100={visible}
+	class:-translate-y-2={!visible}
+	class:translate-y-0={visible}
 >
-	<div
-		class="w-full max-w-sm overflow-hidden rounded-2xl bg-white p-6 text-center shadow-2xl animate-in fade-in zoom-in-95 slide-in-from-bottom-10 duration-200 sm:slide-in-from-bottom-0"
-		role="dialog"
-		aria-modal="true"
-	>
-		<div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100 text-green-600">
-			<CheckCircle2 size={24} />
-		</div>
-		
-		<h3 class="mt-4 text-lg font-bold text-gray-900">{title}</h3>
-		<p class="mt-2 text-sm text-gray-500">{message}</p>
-
-		<div class="mt-6">
-			<button type="button" class="btn btn-primary w-full" onclick={onClose}>
-				{buttonLabel}
-			</button>
-		</div>
+	<div class="flex items-center gap-3 rounded-xl bg-gray-900 px-4 py-3 text-white shadow-xl">
+		<CheckCircle2 size={18} class="shrink-0 text-green-400" />
+		<span class="text-sm font-medium">{message}</span>
 	</div>
 </div>
