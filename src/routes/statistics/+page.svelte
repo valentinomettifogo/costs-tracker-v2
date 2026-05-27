@@ -214,7 +214,10 @@
 				scales: {
 					y: {
 						grid: { display: true, color: "#f3f4f6" },
-						ticks: { font: { size: 10 } },
+						ticks: {
+							font: { size: 10 },
+							callback: (value) => Math.round(Number(value)).toString(),
+						},
 					},
 					x: {
 						grid: { display: false },
