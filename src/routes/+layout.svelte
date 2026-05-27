@@ -3,10 +3,18 @@
 	import Navbar from "$lib/components/Navbar.svelte";
 	import { dev } from '$app/environment';
 	import { injectAnalytics } from '@vercel/analytics/sveltekit';
+	import { onMount } from 'svelte';
 
 	injectAnalytics({ mode: dev ? 'development' : 'production' });
 
 	let { children, data } = $props();
+
+	onMount(() => {
+		const el = document.getElementById('app-loading');
+		if (!el) return;
+		el.classList.add('fade-out');
+		setTimeout(() => el.remove(), 280);
+	});
 </script>
 
 <svelte:head>

@@ -123,3 +123,8 @@ CREATE POLICY "notifications: select own"
 ALTER PUBLICATION supabase_realtime ADD TABLE costs_notifications;
 
 CREATE INDEX costs_notifications_user_idx ON costs_notifications(user_id, created_at DESC);
+
+-- Performance: primary query pattern on movements is WHERE space_id = ? ORDER BY date DESC
+CREATE INDEX costs_movements_space_date_idx ON costs_movements(space_id, date DESC);
+-- Performance: supports category-type filter joins
+CREATE INDEX costs_movements_space_cat_idx ON costs_movements(space_id, category_id);

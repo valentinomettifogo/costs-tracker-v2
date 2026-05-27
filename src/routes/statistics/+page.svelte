@@ -1,6 +1,26 @@
 <script lang="ts">
-	import Chart from "chart.js/auto";
-	import ChartDataLabels from "chartjs-plugin-datalabels";
+	import {
+		Chart,
+		DoughnutController,
+		LineController,
+		ArcElement,
+		LineElement,
+		PointElement,
+		LinearScale,
+		CategoryScale,
+		Tooltip,
+		Legend,
+		Filler
+	} from 'chart.js';
+	import ChartDataLabels from 'chartjs-plugin-datalabels';
+
+	Chart.register(
+		DoughnutController, LineController,
+		ArcElement, LineElement, PointElement,
+		LinearScale, CategoryScale,
+		Tooltip, Legend, Filler,
+		ChartDataLabels
+	);
 	import {
 		Info,
 		TrendingUp,

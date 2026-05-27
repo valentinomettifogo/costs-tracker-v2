@@ -133,15 +133,12 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	const totals: StatsTotals = { income: 0, needs: 0, wants: 0, savings: 0 };
 	const catMap = new Map<string, number>();
 	const monthMap = new Map<string, MonthlyPoint>();
+	const MONTH_ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
 	for (const m of rows) {
 		const type = m.costs_categories?.type;
 		const catName = m.costs_categories?.name ?? 'Uncategorized';
 		const sortKey = m.date.slice(0, 7); // "YYYY-MM"
-		const label = new Date(m.date + 'T00:00:00').toLocaleString('en-US', {
-			month: 'short',
-			year: '2-digit'
-		});
 
 		if (type === 'income') totals.income += m.amount;
 		else if (type === 'needs') totals.needs -= m.amount;
@@ -152,10 +149,14 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			catMap.set(catName, (catMap.get(catName) ?? 0) - m.amount);
 		}
 
-		if (!monthMap.has(label)) monthMap.set(label, { label, sortKey, income: 0, expenses: 0 });
-		const month = monthMap.get(label)!;
-		if (type === 'income') month.income += m.amount;
-		else month.expenses -= m.amount;
+		if (!monthMap.has(sortKey)) {
+			const mo = parseInt(sortKey.slice(5), 10);
+			const label = `${MONTH_ABBR[mo - 1]} ${sortKey.slice(2, 4)}`;
+			monthMap.set(sortKey, { label, sortKey, income: 0, expenses: 0 });
+		}
+		const point = monthMap.get(sortKey)!;
+		if (type === 'income') point.income += m.amount;
+		else point.expenses -= m.amount;
 	}
 
 	const categoryTotals: CategoryTotal[] = Array.from(catMap.entries())

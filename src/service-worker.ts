@@ -7,8 +7,8 @@ declare const self: ServiceWorkerGlobalScope;
 
 const CACHE_NAME = `budget-cache-${version}`;
 
-// Assets to precache: SvelteKit build output + static files
 const ASSETS = [...build, ...files];
+const ASSET_SET = new Set(ASSETS);
 
 // ─── Install ──────────────────────────────────────────────────────────────────
 self.addEventListener('install', (event) => {
@@ -44,17 +44,26 @@ self.addEventListener('fetch', (event) => {
 	if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/_app/data/')) return;
 
 	// Static assets (build output + files) → cache-first
-	if (ASSETS.includes(url.pathname)) {
+	if (ASSET_SET.has(url.pathname)) {
 		event.respondWith(
 			caches.match(request).then((cached) => cached ?? fetch(request))
 		);
 		return;
 	}
 
-	// Navigation requests → network-first, fall back to cache
+	// Navigation requests → network-first, cache successful responses for offline fallback
 	if (request.mode === 'navigate') {
 		event.respondWith(
-			fetch(request).catch(() => caches.match(request).then((cached) => cached ?? fetch(request)))
+			(async () => {
+				const cache = await caches.open(CACHE_NAME);
+				try {
+					const response = await fetch(request);
+					if (response.ok) cache.put(request, response.clone());
+					return response;
+				} catch {
+					return (await cache.match(request)) ?? Response.error();
+				}
+			})()
 		);
 		return;
 	}
