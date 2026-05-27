@@ -66,7 +66,7 @@
 
 <nav class="pt-safe sticky top-0 z-50 border-b border-gray-200 bg-white/90 backdrop-blur-md">
 	<div class="mx-auto max-w-6xl px-4">
-		<div class="flex h-16 items-center justify-between">
+		<div class="flex h-14 items-center justify-between">
 			<!-- Logo -->
 			<div class="flex items-center">
 				<a href="/" class="flex shrink-0 items-center">
@@ -161,7 +161,7 @@
 <!-- Mobile: bottom navigation bar -->
 <nav class="fixed inset-x-0 bottom-0 z-40 border-t border-gray-200 bg-white md:hidden">
 	{#if user}
-		<ul class="pb-safe flex h-[calc(4rem+env(safe-area-inset-bottom,0))] items-stretch justify-around px-2">
+		<ul class="pb-safe flex h-[calc(3.25rem+env(safe-area-inset-bottom,0))] items-stretch justify-around px-2">
 			<li class="flex-1">
 				<a
 					class={`flex h-full flex-col items-center justify-center gap-1 transition-colors ${currentPathClean === '/' ? 'text-primary' : 'text-gray-500 hover:text-gray-900'}`}
