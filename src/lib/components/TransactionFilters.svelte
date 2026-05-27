@@ -57,7 +57,7 @@
 	const categoryLabel = $derived(
 		noneSelected || allSelected
 			? 'All categories'
-			: `${selectedCategoryIds.length} selected`
+			: `${selectedCategoryIds.length} on ${categories.length} selected`
 	);
 
 	const typeOrder = ['needs', 'wants', 'savings', 'income'];
