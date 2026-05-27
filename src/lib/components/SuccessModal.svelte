@@ -30,7 +30,7 @@
 <div
 	role="status"
 	aria-live="polite"
-	class="fixed top-4 left-1/2 z-[100] -translate-x-1/2 transition-all duration-300"
+	class="fixed top-4 left-1/2 z-100 -translate-x-1/2 transition-all duration-300"
 	class:opacity-0={!visible}
 	class:opacity-100={visible}
 	class:-translate-y-2={!visible}
