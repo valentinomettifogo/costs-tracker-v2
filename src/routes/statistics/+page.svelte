@@ -25,6 +25,7 @@
 	);
 
 	// --- KPI PERCENTAGES ---
+	// I KPI riflettono la somma algebrica dei movimenti (anche negativi)
 	let percentageValues = $derived({
 		needs: totals.income > 0 ? (totals.needs / totals.income) * 100 : 0,
 		wants: totals.income > 0 ? (totals.wants / totals.income) * 100 : 0,
@@ -74,50 +75,51 @@
 		lineChart?.destroy();
 
 		const catLabels = data.categoryTotals.map((c) => c.name);
-		const catValues = data.categoryTotals.map((c) => c.total);
+		// Imposta a zero i totali negativi (es. rimborsi) per il grafico a ciambella
+		const catValues = data.categoryTotals.map((c) => c.total > 0 ? c.total : 0);
 		const trendLabels = data.monthlyTrend.map((m) => m.label);
 		const total = catValues.reduce((s, v) => s + v, 0);
 
-		pieChart = new Chart(pieCanvas, {
-			type: "doughnut",
-			plugins: [ChartDataLabels],
-			data: {
-				labels: catLabels,
-				datasets: [
-					{
-						data: catValues,
-						backgroundColor: CHART_COLORS,
-						borderWidth: 0,
-						cutout: "40%",
-					} as never,
-				],
-			},
-			options: {
-				maintainAspectRatio: false,
-				plugins: {
-					legend: { display: false },
-					datalabels: {
-						color: "#fff",
-						font: { size: 10, weight: "bold" },
-						formatter: (value: number, ctx) => {
-							const pct =
-								total > 0
-									? ((value / total) * 100).toFixed(1)
-									: "0";
-							const label =
-								(ctx.chart.data.labels?.[
-									ctx.dataIndex
-								] as string) ?? "";
-							if (Number(pct) < 5) return "";
-							return `${label}\n${pct}%`;
-						},
-						textAlign: "center",
-						anchor: "center",
-						align: "center",
-					},
-				},
-			},
-		});
+		   pieChart = new Chart(pieCanvas, {
+			   type: "doughnut",
+			   plugins: [ChartDataLabels],
+			   data: {
+				   labels: catLabels,
+				   datasets: [
+					   {
+						   data: catValues,
+						   backgroundColor: CHART_COLORS,
+						   borderWidth: 0,
+						   cutout: "40%",
+					   } as never,
+				   ],
+			   },
+			   options: {
+				   maintainAspectRatio: false,
+				   plugins: {
+					   legend: { display: false },
+					   datalabels: {
+						   color: "#fff",
+						   font: { size: 10, weight: "bold" },
+						   formatter: (value: number, ctx) => {
+							   const pct =
+								   total > 0
+									   ? ((value / total) * 100).toFixed(1)
+									   : "0";
+							   const label =
+								   (ctx.chart.data.labels?.[
+									   ctx.dataIndex
+								   ] as string) ?? "";
+							   if (Number(pct) < 5 || value === 0) return "";
+							   return `${label}\n${pct}%`;
+						   },
+						   textAlign: "center",
+						   anchor: "center",
+						   align: "center",
+					   },
+				   },
+			   },
+		   });
 
 		lineChart = new Chart(lineCanvas, {
 			type: "line",
@@ -307,7 +309,7 @@
 							<span class="text-gray-300 ml-0.5">/{targets.needs}%</span>
 						</div>
 						<div class="w-full h-1 rounded-full bg-gray-100 overflow-hidden">
-							<div class="h-full rounded-full transition-all" style="background-color:{colors.needs}; width:{Math.min(percentageValues.needs / targets.needs * 100, 100)}%"></div>
+							<div class="h-full rounded-full transition-all" style="background-color:{colors.needs}; width:{Math.min(Math.max(percentageValues.needs / targets.needs * 100, 0), 100)}%"></div>
 						</div>
 					</div>
 				</div>
@@ -329,7 +331,7 @@
 							<span class="text-gray-300 ml-0.5">/{targets.wants}%</span>
 						</div>
 						<div class="w-full h-1 rounded-full bg-gray-100 overflow-hidden">
-							<div class="h-full rounded-full transition-all" style="background-color:{colors.wants}; width:{Math.min(percentageValues.wants / targets.wants * 100, 100)}%"></div>
+							<div class="h-full rounded-full transition-all" style="background-color:{colors.wants}; width:{Math.min(Math.max(percentageValues.wants / targets.wants * 100, 0), 100)}%"></div>
 						</div>
 					</div>
 				</div>
@@ -351,7 +353,7 @@
 							<span class="text-gray-300 ml-0.5">/{targets.savings}%</span>
 						</div>
 						<div class="w-full h-1 rounded-full bg-gray-100 overflow-hidden">
-							<div class="h-full rounded-full transition-all" style="background-color:{colors.savings}; width:{Math.min(percentageValues.savings / targets.savings * 100, 100)}%"></div>
+							<div class="h-full rounded-full transition-all" style="background-color:{colors.savings}; width:{Math.min(Math.max(percentageValues.savings / targets.savings * 100, 0), 100)}%"></div>
 						</div>
 					</div>
 				</div>

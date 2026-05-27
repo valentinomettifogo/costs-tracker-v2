@@ -144,18 +144,18 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		});
 
 		if (type === 'income') totals.income += m.amount;
-		else if (type === 'needs') totals.needs += Math.abs(m.amount);
-		else if (type === 'wants') totals.wants += Math.abs(m.amount);
-		else if (type === 'savings') totals.savings += Math.abs(m.amount);
+		else if (type === 'needs') totals.needs -= m.amount;
+		else if (type === 'wants') totals.wants -= m.amount;
+		else if (type === 'savings') totals.savings -= m.amount;
 
 		if (type !== 'income') {
-			catMap.set(catName, (catMap.get(catName) ?? 0) + Math.abs(m.amount));
+			catMap.set(catName, (catMap.get(catName) ?? 0) - m.amount);
 		}
 
 		if (!monthMap.has(label)) monthMap.set(label, { label, sortKey, income: 0, expenses: 0 });
 		const month = monthMap.get(label)!;
 		if (type === 'income') month.income += m.amount;
-		else month.expenses += Math.abs(m.amount);
+		else month.expenses -= m.amount;
 	}
 
 	const categoryTotals: CategoryTotal[] = Array.from(catMap.entries())
