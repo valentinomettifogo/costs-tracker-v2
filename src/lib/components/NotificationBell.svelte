@@ -126,14 +126,14 @@
 	>
 		<Bell size={20} class="pointer-events-none" />
 		{#if unreadCount > 0}
-			<span class="absolute -right-1 -top-1 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-white shadow-sm ring-2 ring-white pointer-events-none">
+			<span class="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-white shadow-sm ring-2 ring-white pointer-events-none">
 				{badgeLabel}
 			</span>
 		{/if}
 	</button>
 
 	{#if isOpen}
-		<div class="absolute right-0 mt-2 w-80 origin-top-right rounded-xl border border-gray-200 bg-white shadow-2xl animate-in fade-in zoom-in-95 duration-100 z-[60]">
+		<div class="absolute right-0 mt-2 w-80 origin-top-right rounded-xl border border-gray-200 bg-white shadow-2xl animate-in fade-in zoom-in-95 duration-100 z-60">
 			<div class="flex items-center justify-between border-b border-gray-100 px-4 py-3">
 				<h3 class="text-sm font-bold text-gray-900">Notifications</h3>
 				{#if mergedNotifications.length > 0}
