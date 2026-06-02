@@ -396,7 +396,8 @@
 						<canvas bind:this={pieCanvas}></canvas>
 					</div>
 				</div>
-
+				
+				<!-- TOFIX: decimal in the chart are wayyy to much -->
 				<div
 					class="rounded-2xl bg-white p-6 shadow-sm border border-gray-100"
 				>
