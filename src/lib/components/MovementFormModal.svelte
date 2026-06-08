@@ -36,10 +36,9 @@
 	}
 </script>
 
-<!-- TOFIX: il recurring non funziona se faccio "edit" quindi o lo disabilito o lo faccio funzionare -->
-<!-- TOFIX: un sacco di warning da vscode -->
+
 <div
-	class="fixed inset-0 z-[100] flex items-end justify-center bg-black/50 p-4 backdrop-blur-sm sm:items-center"
+	class="fixed inset-0 z-100 flex items-end justify-center bg-black/50 p-4 backdrop-blur-sm sm:items-center"
 	onclick={handleBackdropClick}
 	role="presentation"
 >
@@ -201,7 +200,8 @@
 						</label>
 					</div>
 
-					<!-- Recurring -->
+					<!-- Recurring (new movements only) -->
+					{#if !editing}
 					<div class="flex items-center gap-3">
 						<input
 							id="recurring"
@@ -213,6 +213,7 @@
 							Create monthly for the whole year
 						</label>
 					</div>
+					{/if}
 				</div>
 
 				<!-- Footer -->
