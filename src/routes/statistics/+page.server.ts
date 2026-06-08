@@ -93,7 +93,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 
 	const filters = parseUrlFilters(url, {
 		availableYears,
-		defaultYtd: true,
+		defaultToCurrentPeriod: true,
 		fallbackToFirstAvailableYear: true
 	});
 
@@ -163,9 +163,9 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		.map(([name, total]) => ({ name, total }))
 		.sort((a, b) => b.total - a.total);
 
-	const monthlyTrend: MonthlyPoint[] = Array.from(monthMap.values()).sort((a, b) =>
-		a.sortKey.localeCompare(b.sortKey)
-	);
+	const monthlyTrend: MonthlyPoint[] = Array.from(monthMap.values())
+		.sort((a, b) => a.sortKey.localeCompare(b.sortKey))
+		.map(p => ({ ...p, income: Math.round(p.income), expenses: Math.round(p.expenses) }));
 
 	return {
 		totals,

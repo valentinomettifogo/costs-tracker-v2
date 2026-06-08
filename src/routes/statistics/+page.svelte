@@ -174,6 +174,18 @@
 				responsive: true,
 				maintainAspectRatio: false,
 				plugins: {
+					datalabels: {
+						anchor: 'end',
+						align: 'top',
+						offset: 4,
+						font: { size: 9, weight: 'bold' },
+						color: (ctx) => ctx.dataset.borderColor as string,
+						formatter: (value: number) => {
+							if (value <= 0) return '';
+							const locale = data.format === 'IT' ? 'it-IT' : 'en-US';
+							return new Intl.NumberFormat(locale, { style: 'currency', currency: data.currency ?? 'EUR', maximumFractionDigits: 0 }).format(value);
+						},
+					},
 					legend: {
 						position: "top",
 						labels: {
@@ -397,7 +409,6 @@
 					</div>
 				</div>
 				
-				<!-- TOFIX: decimal in the chart are wayyy to much -->
 				<div
 					class="rounded-2xl bg-white p-6 shadow-sm border border-gray-100"
 				>
