@@ -65,6 +65,12 @@ export const actions: Actions = {
 
 		if (err) return fail(500, { error: err.message });
 
+		// safeGetSession reads user_metadata from the JWT, so mint a fresh
+		// access token (and cookies) carrying the new active_space_id.
+		const { error: refreshErr } = await locals.supabase.auth.refreshSession();
+		if (refreshErr) return fail(500, { error: 'Space switched — please reload the page.' });
+		locals._sessionCache = undefined;
+
 		return { activated: true };
 	},
 

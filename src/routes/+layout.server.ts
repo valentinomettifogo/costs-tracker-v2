@@ -1,28 +1,39 @@
 import type { LayoutServerLoad } from './$types';
 
 import { getUserRole } from '$lib/server/auth';
+import type { Notification } from '$lib/types';
 
 export const load: LayoutServerLoad = async ({ locals, url }) => {
+	// The /shell route is prerendered at build time (PWA app shell): no user,
+	// and url.search must not be touched during prerendering.
+	if (url.pathname === '/shell') {
+		return {
+			user: null,
+			role: null,
+			currentPath: '/shell',
+			notifications: Promise.resolve([] as Notification[])
+		};
+	}
+
 	const { user } = await locals.safeGetSession();
 
-	// getUserRole and notifications don't depend on each other — run in parallel.
-	const [role, notifications] = await Promise.all([
-		user ? getUserRole(locals.supabase, user.id) : Promise.resolve(null),
-		user
-			? locals.supabase
-					.from('costs_notifications')
-					.select('*')
-					.eq('user_id', user.id)
-					.order('created_at', { ascending: false })
-					.limit(20)
-					.then(({ data }) => data ?? [])
-			: Promise.resolve([])
-	]);
+	const role = user ? await getUserRole(locals.supabase, user.id) : null;
 
 	return {
 		user,
 		role,
 		currentPath: `${url.pathname}${url.search}`,
-		notifications
+		// Un-awaited promise: SvelteKit streams it after the initial HTML flush,
+		// so notifications never block first paint.
+		notifications: user
+			? Promise.resolve(
+					locals.supabase
+						.from('costs_notifications')
+						.select('*')
+						.eq('user_id', user.id)
+						.order('created_at', { ascending: false })
+						.limit(20)
+				).then(({ data }) => (data ?? []) as Notification[])
+			: Promise.resolve([] as Notification[])
 	};
 };

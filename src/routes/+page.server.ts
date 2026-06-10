@@ -1,8 +1,9 @@
 import { fail, redirect } from '@sveltejs/kit';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Actions, PageServerLoad } from './$types';
 import { getAdminClient } from '$lib/server/auth';
 import { withCache, resolveCategorySign, buildAvailableYearsFromRange } from '$lib/server/movements';
-import { parseUrlFilters, buildDateRange } from '$lib/server/filters';
+import { parseUrlFilters, buildDateRange, type ParsedFilters } from '$lib/server/filters';
 
 const DEFAULT_LIMIT = 20;
 const PAGE_STEP = 20;
@@ -59,6 +60,42 @@ export type MovementRow = {
 	costs_categories: { id: string; name: string; type: string } | null;
 };
 
+function runMovementsQuery(
+	supabase: SupabaseClient,
+	activeSpaceId: string,
+	filters: ParsedFilters,
+	limit: number
+) {
+	const today = new Date();
+	const { fromDate, toDate } = buildDateRange(
+		filters.year,
+		filters.month,
+		filters.ytd,
+		today.getUTCFullYear(),
+		today.toISOString().slice(0, 10)
+	);
+
+	const categoryRelation = filters.type ? 'costs_categories!inner' : 'costs_categories';
+
+	let query = supabase
+		.from('costs_movements')
+		.select(
+			`id, amount, date, description, user_id, expense_user_id, tags, category_id, ${categoryRelation}(id, name, type)`,
+			{ count: 'exact' }
+		)
+		.eq('space_id', activeSpaceId)
+		.order('date', { ascending: false });
+
+	if (fromDate) query = query.gte('date', fromDate);
+	if (toDate) query = query.lte('date', toDate);
+	if (filters.categoryIds.length > 0) query = query.in('category_id', filters.categoryIds);
+	if (filters.type) query = query.eq('costs_categories.type', filters.type);
+	if (filters.query) query = query.ilike('description', `%${filters.query}%`);
+	if (filters.tag) query = query.contains('tags', [filters.tag]);
+
+	return query.range(0, limit - 1);
+}
+
 export const load: PageServerLoad = async ({ locals, url }) => {
 	const { user } = await locals.safeGetSession();
 
@@ -88,22 +125,38 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	const activeSpaceId = (user.user_metadata?.active_space_id as string | undefined) ?? null;
 	if (!activeSpaceId) return empty;
 
+	const limitParam = parseInt(url.searchParams.get('limit') ?? String(DEFAULT_LIMIT), 10);
+	const limit =
+		isNaN(limitParam) || limitParam < DEFAULT_LIMIT
+			? DEFAULT_LIMIT
+			: Math.min(limitParam, MAX_LIMIT);
+
+	// Parse filters optimistically (no availableYears validation) so the
+	// movements query can run concurrently with the bootstrap query.
+	const optimisticFilters = parseUrlFilters(url, {
+		optimistic: true,
+		defaultToCurrentPeriod: true
+	});
+
 	// Read home bootstrap data from a single view query. This collapses
 	// membership + space + categories + movement year-range lookups.
-	const bootstrap = await withCache<HomeBootstrapViewRow | null>(
-		`home-bootstrap:${user.id}:${activeSpaceId}`,
-		60_000,
-		async () => {
-			const { data } = await locals.supabase
-				.from('v_space_home_bootstrap')
-				.select(
-					'space_id, name, currency, format, owner_id, color_needs, color_wants, color_savings, target_needs, target_wants, target_savings, categories, members_map, oldest_movement_date, newest_movement_date'
-				)
-				.eq('space_id', activeSpaceId)
-				.maybeSingle();
-			return (data as HomeBootstrapViewRow | null) ?? null;
-		}
-	);
+	const [bootstrap, optimisticResult] = await Promise.all([
+		withCache<HomeBootstrapViewRow | null>(
+			`home-bootstrap:${user.id}:${activeSpaceId}`,
+			60_000,
+			async () => {
+				const { data } = await locals.supabase
+					.from('v_space_home_bootstrap')
+					.select(
+						'space_id, name, currency, format, owner_id, color_needs, color_wants, color_savings, target_needs, target_wants, target_savings, categories, members_map, oldest_movement_date, newest_movement_date'
+					)
+					.eq('space_id', activeSpaceId)
+					.maybeSingle();
+				return (data as HomeBootstrapViewRow | null) ?? null;
+			}
+		),
+		runMovementsQuery(locals.supabase, activeSpaceId, optimisticFilters, limit)
+	]);
 
 	if (!bootstrap) return empty;
 
@@ -127,45 +180,22 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	);
 	const membersMap = bootstrap.members_map ?? {};
 
-	const limitParam = parseInt(url.searchParams.get('limit') ?? String(DEFAULT_LIMIT), 10);
-	const limit =
-		isNaN(limitParam) || limitParam < DEFAULT_LIMIT
-			? DEFAULT_LIMIT
-			: Math.min(limitParam, MAX_LIMIT);
-
+	// Re-parse with the real availableYears: if the optimistic assumption was
+	// wrong (e.g. no movements in the current year, or an out-of-range explicit
+	// year param), re-run the movements query with the corrected filters.
 	const filters = parseUrlFilters(url, {
 		availableYears,
 		defaultToCurrentPeriod: true
 	});
 
-	const today = new Date();
-	const { fromDate, toDate } = buildDateRange(
-		filters.year,
-		filters.month,
-		filters.ytd,
-		today.getUTCFullYear(),
-		today.toISOString().slice(0, 10)
-	);
+	const optimisticMatched =
+		filters.year === optimisticFilters.year &&
+		filters.month === optimisticFilters.month &&
+		filters.ytd === optimisticFilters.ytd;
 
-	const categoryRelation = filters.type ? 'costs_categories!inner' : 'costs_categories';
-
-	let movementsQuery = locals.supabase
-		.from('costs_movements')
-		.select(
-			`id, amount, date, description, user_id, expense_user_id, tags, category_id, ${categoryRelation}(id, name, type)`,
-			{ count: 'exact' }
-		)
-		.eq('space_id', activeSpaceId)
-		.order('date', { ascending: false });
-
-	if (fromDate) movementsQuery = movementsQuery.gte('date', fromDate);
-	if (toDate) movementsQuery = movementsQuery.lte('date', toDate);
-	if (filters.categoryIds.length > 0) movementsQuery = movementsQuery.in('category_id', filters.categoryIds);
-	if (filters.type) movementsQuery = movementsQuery.eq('costs_categories.type', filters.type);
-	if (filters.query) movementsQuery = movementsQuery.ilike('description', `%${filters.query}%`);
-	if (filters.tag) movementsQuery = movementsQuery.contains('tags', [filters.tag]);
-
-	const { data: movements, count, error: movError } = await movementsQuery.range(0, limit - 1);
+	const { data: movements, count, error: movError } = optimisticMatched
+		? optimisticResult
+		: await runMovementsQuery(locals.supabase, activeSpaceId, filters, limit);
 	if (movError) console.error('[movements load]', movError);
 
 	const filterParams = new URLSearchParams(url.searchParams);

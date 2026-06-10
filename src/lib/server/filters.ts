@@ -18,7 +18,15 @@ export interface ParsedFilters {
 }
 
 interface ParseFilterOptions {
-	availableYears: number[];
+	/** Required unless `optimistic` is set. */
+	availableYears?: number[];
+	/**
+	 * When true, skip validation against availableYears: assume the current
+	 * year has data and accept any plausible explicit year param. Lets callers
+	 * start the movements query in parallel with the bootstrap query, then
+	 * re-parse with real availableYears and correct only if the result differs.
+	 */
+	optimistic?: boolean;
 	/**
 	 * When true (statistics page), ytd defaults to true if neither year nor
 	 * month params are present.
@@ -38,7 +46,8 @@ interface ParseFilterOptions {
 
 export function parseUrlFilters(url: URL, options: ParseFilterOptions): ParsedFilters {
 	const {
-		availableYears,
+		availableYears = [],
+		optimistic = false,
 		defaultYtd = false,
 		defaultToCurrentPeriod = false,
 		fallbackToFirstAvailableYear = false
@@ -78,13 +87,13 @@ export function parseUrlFilters(url: URL, options: ParseFilterOptions): ParsedFi
 
 	// Year defaults when no explicit year param
 	if (!hasYearParam) {
-		if (availableYears.includes(currentYear)) {
+		if (optimistic || availableYears.includes(currentYear)) {
 			year = currentYear;
 		} else if (fallbackToFirstAvailableYear) {
 			year = availableYears[0] ?? null;
 		}
 	}
-	if (year && !availableYears.includes(year)) year = null;
+	if (!optimistic && year && !availableYears.includes(year)) year = null;
 
 	const parsedMonthNum =
 		!ytd && Number.isInteger(parsedMonth) && parsedMonth >= 1 && parsedMonth <= 12

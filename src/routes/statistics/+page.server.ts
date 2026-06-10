@@ -1,7 +1,8 @@
 import { redirect } from '@sveltejs/kit';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import type { PageServerLoad } from './$types';
 import { withCache, buildAvailableYearsFromRange } from '$lib/server/movements';
-import { parseUrlFilters, buildDateRange } from '$lib/server/filters';
+import { parseUrlFilters, buildDateRange, type ParsedFilters } from '$lib/server/filters';
 
 const MAX_STATS_ROWS = 5000;
 
@@ -30,6 +31,35 @@ type BootstrapViewRow = {
 export type StatsTotals = { income: number; needs: number; wants: number; savings: number };
 export type CategoryTotal = { name: string; total: number };
 export type MonthlyPoint = { label: string; sortKey: string; income: number; expenses: number };
+
+function runStatsQuery(supabase: SupabaseClient, activeSpaceId: string, filters: ParsedFilters) {
+	const today = new Date();
+	const { fromDate, toDate } = buildDateRange(
+		filters.year,
+		filters.month,
+		filters.ytd,
+		today.getUTCFullYear(),
+		today.toISOString().slice(0, 10)
+	);
+
+	const categoryRelation = filters.type ? 'costs_categories!inner' : 'costs_categories';
+
+	// Lean SELECT: only what aggregation needs — no id, description, user_id, etc.
+	let query = supabase
+		.from('costs_movements')
+		.select(`amount, date, ${categoryRelation}(name, type)`)
+		.eq('space_id', activeSpaceId)
+		.order('date', { ascending: true });
+
+	if (fromDate) query = query.gte('date', fromDate);
+	if (toDate) query = query.lte('date', toDate);
+	if (filters.categoryIds.length > 0) query = query.in('category_id', filters.categoryIds);
+	if (filters.type) query = query.eq('costs_categories.type', filters.type);
+	if (filters.query) query = query.ilike('description', `%${filters.query}%`);
+	if (filters.tag) query = query.contains('tags', [filters.tag]);
+
+	return query.range(0, MAX_STATS_ROWS - 1);
+}
 
 export const load: PageServerLoad = async ({ locals, url }) => {
 	const { user } = await locals.safeGetSession();
@@ -66,22 +96,33 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 
 	if (!activeSpaceId) return empty;
 
+	// Parse filters optimistically (no availableYears validation) so the
+	// stats query can run concurrently with the bootstrap query.
+	const optimisticFilters = parseUrlFilters(url, {
+		optimistic: true,
+		defaultToCurrentPeriod: true,
+		fallbackToFirstAvailableYear: true
+	});
+
 	// Reuse the same cache key as the homepage — warm if the user came from home.
 	// Both pages use an identical SELECT so the cached value is always complete.
-	const bootstrap = await withCache<BootstrapViewRow | null>(
-		`home-bootstrap:${user.id}:${activeSpaceId}`,
-		60_000,
-		async () => {
-			const { data } = await locals.supabase
-				.from('v_space_home_bootstrap')
-				.select(
-					'space_id, name, currency, format, owner_id, color_needs, color_wants, color_savings, target_needs, target_wants, target_savings, categories, members_map, oldest_movement_date, newest_movement_date'
-				)
-				.eq('space_id', activeSpaceId)
-				.maybeSingle();
-			return (data as BootstrapViewRow | null) ?? null;
-		}
-	);
+	const [bootstrap, optimisticResult] = await Promise.all([
+		withCache<BootstrapViewRow | null>(
+			`home-bootstrap:${user.id}:${activeSpaceId}`,
+			60_000,
+			async () => {
+				const { data } = await locals.supabase
+					.from('v_space_home_bootstrap')
+					.select(
+						'space_id, name, currency, format, owner_id, color_needs, color_wants, color_savings, target_needs, target_wants, target_savings, categories, members_map, oldest_movement_date, newest_movement_date'
+					)
+					.eq('space_id', activeSpaceId)
+					.maybeSingle();
+				return (data as BootstrapViewRow | null) ?? null;
+			}
+		),
+		runStatsQuery(locals.supabase, activeSpaceId, optimisticFilters)
+	]);
 
 	if (!bootstrap) return empty;
 
@@ -91,38 +132,23 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		bootstrap.newest_movement_date
 	);
 
+	// Re-parse with the real availableYears: if the optimistic assumption was
+	// wrong (e.g. current year has no data → fallback to first available year),
+	// re-run the stats query with the corrected filters.
 	const filters = parseUrlFilters(url, {
 		availableYears,
 		defaultToCurrentPeriod: true,
 		fallbackToFirstAvailableYear: true
 	});
 
-	const today = new Date();
-	const { fromDate, toDate } = buildDateRange(
-		filters.year,
-		filters.month,
-		filters.ytd,
-		today.getUTCFullYear(),
-		today.toISOString().slice(0, 10)
-	);
+	const optimisticMatched =
+		filters.year === optimisticFilters.year &&
+		filters.month === optimisticFilters.month &&
+		filters.ytd === optimisticFilters.ytd;
 
-	const categoryRelation = filters.type ? 'costs_categories!inner' : 'costs_categories';
-
-	// Lean SELECT: only what aggregation needs — no id, description, user_id, etc.
-	let movementsQuery = locals.supabase
-		.from('costs_movements')
-		.select(`amount, date, ${categoryRelation}(name, type)`)
-		.eq('space_id', activeSpaceId)
-		.order('date', { ascending: true });
-
-	if (fromDate) movementsQuery = movementsQuery.gte('date', fromDate);
-	if (toDate) movementsQuery = movementsQuery.lte('date', toDate);
-	if (filters.categoryIds.length > 0) movementsQuery = movementsQuery.in('category_id', filters.categoryIds);
-	if (filters.type) movementsQuery = movementsQuery.eq('costs_categories.type', filters.type);
-	if (filters.query) movementsQuery = movementsQuery.ilike('description', `%${filters.query}%`);
-	if (filters.tag) movementsQuery = movementsQuery.contains('tags', [filters.tag]);
-
-	const { data: rawMovements, error: movError } = await movementsQuery.range(0, MAX_STATS_ROWS - 1);
+	const { data: rawMovements, error: movError } = optimisticMatched
+		? optimisticResult
+		: await runStatsQuery(locals.supabase, activeSpaceId, filters);
 	if (movError) console.error('[stats movements load]', movError);
 
 	// ─── Server-side aggregation ─────────────────────────────────────────────

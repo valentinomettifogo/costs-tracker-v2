@@ -3,13 +3,14 @@
 	import { invalidateAll, goto } from '$app/navigation';
 	import NotificationBell from '$lib/components/NotificationBell.svelte';
 	import type { Notification } from '$lib/types';
-	import { LogOut, LayoutGrid, BarChart3, Users } from 'lucide-svelte';
+	import { Bell, LogOut, LayoutGrid, BarChart3, Users } from 'lucide-svelte';
 
 	interface Props {
 		user: { id?: string; email?: string; user_metadata?: Record<string, unknown> } | null;
 		role: string | null;
 		currentPath: string;
-		notifications: Notification[];
+		/** May be a streamed promise (SvelteKit streaming) or a resolved array. */
+		notifications: Promise<Notification[]> | Notification[];
 	}
 
 	let { user, role, currentPath, notifications }: Props = $props();
@@ -95,7 +96,20 @@
 			<!-- Right Side -->
 			<div class="flex items-center gap-2">
 				{#if user}
-					<NotificationBell {notifications} {userId} />
+					{#await Promise.resolve(notifications)}
+						<!-- Placeholder bell while notifications stream in -->
+						<div class="relative inline-block">
+							<button
+								type="button"
+								disabled
+								class="relative flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-400 focus:outline-none"
+							>
+								<Bell size={20} class="pointer-events-none" />
+							</button>
+						</div>
+					{:then resolved}
+						<NotificationBell notifications={resolved} {userId} />
+					{/await}
 					
 					<!-- User Dropdown -->
 					<div class="relative" use:handleClickOutside>
