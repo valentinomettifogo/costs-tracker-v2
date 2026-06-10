@@ -3,6 +3,16 @@
 	import type { Notification } from '$lib/types';
 	import { Bell } from 'lucide-svelte';
 	import { onMount } from 'svelte';
+	import {
+		isPushSupported,
+		isIosBrowserNotInstalled,
+		getNotificationPermission,
+		getPushSubscription,
+		enablePush,
+		disablePush,
+		setAppBadge,
+		clearAppBadge
+	} from '$lib/push';
 
 	interface Props {
 		notifications: Notification[];
@@ -51,6 +61,50 @@
 	const unreadCount = $derived(mergedNotifications.filter((n) => !n.read).length);
 	const badgeLabel = $derived(unreadCount > 9 ? '9+' : String(unreadCount));
 
+	// Keep the PWA icon badge in sync with the in-app unread count
+	$effect(() => {
+		if (unreadCount > 0) setAppBadge(unreadCount);
+		else clearAppBadge();
+	});
+
+	type PushState = 'hidden' | 'install-required' | 'denied' | 'off' | 'on';
+	let pushState = $state<PushState>('hidden');
+	let isPushBusy = $state(false);
+
+	async function refreshPushState() {
+		if (isIosBrowserNotInstalled()) {
+			pushState = 'install-required';
+			return;
+		}
+		if (!isPushSupported()) {
+			pushState = 'hidden';
+			return;
+		}
+		if (getNotificationPermission() === 'denied') {
+			pushState = 'denied';
+			return;
+		}
+		const subscription = await getPushSubscription();
+		pushState = subscription ? 'on' : 'off';
+	}
+
+	async function togglePush() {
+		if (isPushBusy) return;
+		isPushBusy = true;
+		try {
+			if (pushState === 'on') {
+				await disablePush();
+			} else {
+				await enablePush();
+			}
+		} catch (err) {
+			console.error('Push toggle failed:', err);
+		} finally {
+			await refreshPushState();
+			isPushBusy = false;
+		}
+	}
+
 	onMount(() => {
 		const channel = supabase
 			.channel('notifications-live')
@@ -67,6 +121,8 @@
 				}
 			)
 			.subscribe();
+
+		refreshPushState();
 
 		return () => {
 			supabase.removeChannel(channel);
@@ -176,6 +232,38 @@
 					</ul>
 				{/if}
 			</div>
+
+			{#if pushState !== 'hidden'}
+				<div class="border-t border-gray-100 px-4 py-3">
+					{#if pushState === 'install-required'}
+						<p class="text-xs text-gray-400">
+							Install the app to your home screen to enable push notifications.
+						</p>
+					{:else if pushState === 'denied'}
+						<p class="text-xs text-gray-400">
+							Notifications are blocked. Enable them in your browser settings.
+						</p>
+					{:else}
+						<button
+							type="button"
+							class="flex w-full items-center justify-between gap-3 disabled:opacity-50"
+							onclick={togglePush}
+							disabled={isPushBusy}
+							role="switch"
+							aria-checked={pushState === 'on'}
+						>
+							<span class="text-xs font-medium text-gray-600">Push on this device</span>
+							<span
+								class="relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors {pushState === 'on' ? 'bg-primary' : 'bg-gray-200'}"
+							>
+								<span
+									class="inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform {pushState === 'on' ? 'translate-x-4.5' : 'translate-x-0.5'}"
+								></span>
+							</span>
+						</button>
+					{/if}
+				</div>
+			{/if}
 		</div>
 	{/if}
 </div>

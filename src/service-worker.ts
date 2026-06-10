@@ -93,21 +93,60 @@ self.addEventListener('fetch', (event) => {
 	}
 });
 
-// ─── Phase 2: Push Notifications ─────────────────────────────────────────────
-// Uncomment and implement when adding push notification support.
-//
-// self.addEventListener('push', (event) => {
-//   const data = event.data?.json() ?? { title: 'Budget', body: '' };
-//   event.waitUntil(
-//     self.registration.showNotification(data.title, {
-//       body: data.body,
-//       icon: '/icon-192.png',
-//       badge: '/icon-192.png',
-//     })
-//   );
-// });
-//
-// self.addEventListener('notificationclick', (event) => {
-//   event.notification.close();
-//   event.waitUntil(self.clients.openWindow('/'));
-// });
+// ─── Push Notifications ──────────────────────────────────────────────────────
+
+interface PushPayload {
+	title?: string;
+	body?: string;
+	url?: string;
+	tag?: string;
+	badgeCount?: number;
+}
+
+const NOTIFICATION_ICON = '/icons/web-app-manifest-192x192.png';
+
+self.addEventListener('push', (event) => {
+	let data: PushPayload = {};
+	try {
+		data = (event.data?.json() as PushPayload) ?? {};
+	} catch {
+		// malformed payload — still show a generic notification (required on iOS)
+	}
+
+	const tasks: Promise<unknown>[] = [
+		self.registration.showNotification(data.title ?? 'Bloom Budget', {
+			body: data.body ?? '',
+			tag: data.tag,
+			icon: NOTIFICATION_ICON,
+			badge: NOTIFICATION_ICON,
+			data: { url: data.url ?? '/' }
+		})
+	];
+
+	if (typeof data.badgeCount === 'number' && 'setAppBadge' in self.navigator) {
+		tasks.push(self.navigator.setAppBadge(data.badgeCount).catch(() => undefined));
+	}
+
+	event.waitUntil(Promise.all(tasks));
+});
+
+self.addEventListener('notificationclick', (event) => {
+	event.notification.close();
+	const url: string = event.notification.data?.url ?? '/';
+
+	event.waitUntil(
+		(async () => {
+			const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+			const existing = windows[0];
+			if (existing) {
+				await existing.focus();
+				if (new URL(existing.url).pathname !== url) {
+					// navigate() can reject (e.g. iOS) — focusing is enough then
+					await existing.navigate(url).catch(() => undefined);
+				}
+				return;
+			}
+			await self.clients.openWindow(url);
+		})()
+	);
+});

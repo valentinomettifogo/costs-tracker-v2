@@ -128,3 +128,27 @@ CREATE INDEX costs_notifications_user_idx ON costs_notifications(user_id, create
 CREATE INDEX costs_movements_space_date_idx ON costs_movements(space_id, date DESC);
 -- Performance: supports category-type filter joins
 CREATE INDEX costs_movements_space_cat_idx ON costs_movements(space_id, category_id);
+-- ============================================================
+-- 8. costs_push_subscriptions
+-- Una riga per dispositivo/browser sottoscritto alle Web Push.
+-- Le scritture passano dal service role (endpoint /push lato server);
+-- SELECT own per simmetria con costs_notifications.
+-- ============================================================
+CREATE TABLE costs_push_subscriptions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    endpoint TEXT NOT NULL UNIQUE,
+    p256dh TEXT NOT NULL,
+    auth TEXT NOT NULL,
+    user_agent TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE costs_push_subscriptions ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "push_subscriptions: select own"
+    ON costs_push_subscriptions FOR SELECT
+    TO authenticated
+    USING (auth.uid() = user_id);
+
+CREATE INDEX costs_push_subscriptions_user_idx ON costs_push_subscriptions(user_id);

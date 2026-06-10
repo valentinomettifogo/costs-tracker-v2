@@ -2,6 +2,7 @@ import { fail, redirect } from '@sveltejs/kit';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Actions, PageServerLoad } from './$types';
 import { getAdminClient } from '$lib/server/auth';
+import { sendPushToUsers } from '$lib/server/push';
 import { withCache, resolveCategorySign, buildAvailableYearsFromRange } from '$lib/server/movements';
 import { parseUrlFilters, buildDateRange, type ParsedFilters } from '$lib/server/filters';
 
@@ -268,8 +269,9 @@ async function dispatchCreationNotifications(
 
 	if (!spaceData || !members?.length) return;
 
-	const rows = (members as Array<{ user_id: string }>).map((m) => ({
-		user_id: m.user_id,
+	const memberIds = (members as Array<{ user_id: string }>).map((m) => m.user_id);
+	const rows = memberIds.map((userId) => ({
+		user_id: userId,
 		space_id: payload.spaceId,
 		movement_id: payload.movementId,
 		actor_id: payload.userId,
@@ -280,6 +282,33 @@ async function dispatchCreationNotifications(
 		space_name: spaceData.name
 	}));
 	await admin.from('costs_notifications').insert(rows);
+
+	// Counted after the insert so the badge includes this notification
+	const { data: unreadRows } = await admin
+		.from('costs_notifications')
+		.select('user_id')
+		.eq('read', false)
+		.in('user_id', memberIds);
+	const unreadCounts = new Map<string, number>();
+	for (const row of (unreadRows ?? []) as Array<{ user_id: string }>) {
+		unreadCounts.set(row.user_id, (unreadCounts.get(row.user_id) ?? 0) + 1);
+	}
+
+	// Same wording as getNotificationContent() in NotificationBell.svelte
+	const formattedAmount = new Intl.NumberFormat('it-IT', {
+		style: 'currency',
+		currency: 'EUR'
+	}).format(payload.amount);
+	const title = payload.amount > 0 ? 'New income' : 'New expense';
+	const body = `${actorName} added ${formattedAmount} in ${payload.categoryName ?? 'uncategorized'} (${spaceData.name})`;
+
+	await sendPushToUsers(admin, memberIds, (userId) => ({
+		title,
+		body,
+		url: '/',
+		tag: `movement-${payload.movementId ?? 'new'}`,
+		badgeCount: unreadCounts.get(userId) ?? 1
+	}));
 }
 
 // ─── Actions ─────────────────────────────────────────────────────────────────
