@@ -16,7 +16,11 @@
 		const target =
 			location.pathname === '/shell' ? '/' : `${location.pathname}${location.search}`;
 		try {
-			await goto(target, { replaceState: true });
+			// invalidateAll is REQUIRED: the browser URL already matches `target`,
+			// so without it the router sees "same URL" and keeps the prerendered
+			// layout data (user:null) — the navbar would show a logged-out state
+			// for logged-in users and /login would silently bounce back.
+			await goto(target, { replaceState: true, invalidateAll: true });
 		} catch {
 			if (!navigator.onLine) {
 				offline = true;

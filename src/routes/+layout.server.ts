@@ -10,7 +10,9 @@ export const load: LayoutServerLoad = async ({ locals, url }) => {
 		return {
 			user: null,
 			role: null,
-			currentPath: '/shell',
+			// '/' (not '/shell') so that anything reading currentPath before the
+			// shell's invalidateAll-goto completes points somewhere sensible.
+			currentPath: '/',
 			notifications: Promise.resolve([] as Notification[])
 		};
 	}

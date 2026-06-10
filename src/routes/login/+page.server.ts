@@ -29,8 +29,16 @@ export const actions: Actions = {
 
 		throw redirect(303, redirectTo);
 	},
-	logout: async ({ locals }) => {
+	logout: async ({ locals, cookies }) => {
 		await locals.supabase.auth.signOut();
+		// safeGetSession uses getClaims(), which trusts any unexpired JWT found
+		// in the cookies — so make absolutely sure they are gone, even when the
+		// sign-out API call fails (otherwise the user looks logged in for up to
+		// the token lifetime and /login keeps bouncing back to /).
+		for (const { name } of cookies.getAll()) {
+			if (name.startsWith('sb-')) cookies.delete(name, { path: '/' });
+		}
+		locals._sessionCache = undefined;
 		throw redirect(303, '/');
 	}
 };
