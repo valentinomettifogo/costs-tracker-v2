@@ -30,7 +30,7 @@ type BootstrapViewRow = {
 
 export type StatsTotals = { income: number; needs: number; wants: number; savings: number };
 export type CategoryTotal = { name: string; total: number };
-export type MonthlyPoint = { label: string; sortKey: string; income: number; expenses: number };
+export type MonthlyPoint = { label: string; sortKey: string; income: number; costs: number; savings: number };
 
 function runStatsQuery(supabase: SupabaseClient, activeSpaceId: string, filters: ParsedFilters) {
 	const today = new Date();
@@ -178,11 +178,12 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		if (!monthMap.has(sortKey)) {
 			const mo = parseInt(sortKey.slice(5), 10);
 			const label = `${MONTH_ABBR[mo - 1]} ${sortKey.slice(2, 4)}`;
-			monthMap.set(sortKey, { label, sortKey, income: 0, expenses: 0 });
+			monthMap.set(sortKey, { label, sortKey, income: 0, costs: 0, savings: 0 });
 		}
 		const point = monthMap.get(sortKey)!;
 		if (type === 'income') point.income += m.amount;
-		else point.expenses -= m.amount;
+		else if (type === 'needs' || type === 'wants') point.costs -= m.amount;
+		else if (type === 'savings') point.savings -= m.amount;
 	}
 
 	const categoryTotals: CategoryTotal[] = Array.from(catMap.entries())
@@ -191,7 +192,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 
 	const monthlyTrend: MonthlyPoint[] = Array.from(monthMap.values())
 		.sort((a, b) => a.sortKey.localeCompare(b.sortKey))
-		.map(p => ({ ...p, income: Math.round(p.income), expenses: Math.round(p.expenses) }));
+		.map(p => ({ ...p, income: Math.round(p.income), costs: Math.round(p.costs), savings: Math.round(p.savings) }));
 
 	return {
 		totals,
