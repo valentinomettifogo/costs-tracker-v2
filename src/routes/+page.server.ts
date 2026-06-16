@@ -61,12 +61,24 @@ export type MovementRow = {
 	costs_categories: { id: string; name: string; type: string } | null;
 };
 
-function runMovementsQuery(
-	supabase: SupabaseClient,
-	activeSpaceId: string,
-	filters: ParsedFilters,
-	limit: number
-) {
+// Minimal chainable shape shared by the costs_movements query builders so the
+// filter helper can stay generic without depending on internal Supabase types.
+interface MovementFilterBuilder {
+	gte(column: string, value: string): this;
+	lte(column: string, value: string): this;
+	in(column: string, values: string[]): this;
+	eq(column: string, value: string): this;
+	ilike(column: string, pattern: string): this;
+	contains(column: string, value: string[]): this;
+}
+
+// Applies the shared URL-driven filters (date range, category, type, search,
+// tag) to a costs_movements query. Used by both the paginated movements query
+// and the filtered-total sum query so they never diverge.
+function applyMovementFilters<T extends MovementFilterBuilder>(
+	query: T,
+	filters: ParsedFilters
+): T {
 	const today = new Date();
 	const { fromDate, toDate } = buildDateRange(
 		filters.year,
@@ -76,9 +88,26 @@ function runMovementsQuery(
 		today.toISOString().slice(0, 10)
 	);
 
+	let q = query;
+	if (fromDate) q = q.gte('date', fromDate);
+	if (toDate) q = q.lte('date', toDate);
+	if (filters.categoryIds.length > 0) q = q.in('category_id', filters.categoryIds);
+	if (filters.type) q = q.eq('costs_categories.type', filters.type);
+	if (filters.query) q = q.ilike('description', `%${filters.query}%`);
+	if (filters.tag) q = q.contains('tags', [filters.tag]);
+
+	return q;
+}
+
+function runMovementsQuery(
+	supabase: SupabaseClient,
+	activeSpaceId: string,
+	filters: ParsedFilters,
+	limit: number
+) {
 	const categoryRelation = filters.type ? 'costs_categories!inner' : 'costs_categories';
 
-	let query = supabase
+	const query = supabase
 		.from('costs_movements')
 		.select(
 			`id, amount, date, description, user_id, expense_user_id, tags, category_id, ${categoryRelation}(id, name, type)`,
@@ -87,14 +116,31 @@ function runMovementsQuery(
 		.eq('space_id', activeSpaceId)
 		.order('date', { ascending: false });
 
-	if (fromDate) query = query.gte('date', fromDate);
-	if (toDate) query = query.lte('date', toDate);
-	if (filters.categoryIds.length > 0) query = query.in('category_id', filters.categoryIds);
-	if (filters.type) query = query.eq('costs_categories.type', filters.type);
-	if (filters.query) query = query.ilike('description', `%${filters.query}%`);
-	if (filters.tag) query = query.contains('tags', [filters.tag]);
+	return applyMovementFilters(query, filters).range(0, limit - 1);
+}
 
-	return query.range(0, limit - 1);
+// Fetches the `amount` of every row matching the filters (no pagination) so the
+// net total reflects the full filtered set, not just the loaded page. Mirrors
+// the fetch-and-sum pattern used by the statistics page.
+async function fetchFilteredTotal(
+	supabase: SupabaseClient,
+	activeSpaceId: string,
+	filters: ParsedFilters
+): Promise<number> {
+	const categoryRelation = filters.type ? 'costs_categories!inner' : 'costs_categories';
+
+	const query = supabase
+		.from('costs_movements')
+		.select(`amount, ${categoryRelation}(type)`)
+		.eq('space_id', activeSpaceId);
+
+	const { data, error } = await applyMovementFilters(query, filters);
+	if (error) {
+		console.error('[filtered total]', error);
+		return 0;
+	}
+
+	return ((data as unknown as { amount: number }[]) ?? []).reduce((sum, r) => sum + r.amount, 0);
 }
 
 export const load: PageServerLoad = async ({ locals, url }) => {
@@ -107,6 +153,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		membersMap: {} as Record<string, string>,
 		movements: [] as MovementRow[],
 		totalMovements: 0,
+		filteredTotal: 0,
 		limit: DEFAULT_LIMIT,
 		pageStep: PAGE_STEP,
 		filters: {
@@ -141,7 +188,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 
 	// Read home bootstrap data from a single view query. This collapses
 	// membership + space + categories + movement year-range lookups.
-	const [bootstrap, optimisticResult] = await Promise.all([
+	const [bootstrap, optimisticResult, optimisticTotal] = await Promise.all([
 		withCache<HomeBootstrapViewRow | null>(
 			`home-bootstrap:${user.id}:${activeSpaceId}`,
 			60_000,
@@ -156,7 +203,8 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 				return (data as HomeBootstrapViewRow | null) ?? null;
 			}
 		),
-		runMovementsQuery(locals.supabase, activeSpaceId, optimisticFilters, limit)
+		runMovementsQuery(locals.supabase, activeSpaceId, optimisticFilters, limit),
+		fetchFilteredTotal(locals.supabase, activeSpaceId, optimisticFilters)
 	]);
 
 	if (!bootstrap) return empty;
@@ -199,6 +247,10 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		: await runMovementsQuery(locals.supabase, activeSpaceId, filters, limit);
 	if (movError) console.error('[movements load]', movError);
 
+	const filteredTotal = optimisticMatched
+		? optimisticTotal
+		: await fetchFilteredTotal(locals.supabase, activeSpaceId, filters);
+
 	const filterParams = new URLSearchParams(url.searchParams);
 	filterParams.delete('limit');
 
@@ -210,6 +262,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		userId: user.id,
 		movements: (movements as unknown as MovementRow[]) ?? [],
 		totalMovements: count ?? 0,
+		filteredTotal,
 		limit,
 		pageStep: PAGE_STEP,
 		filters,

@@ -137,9 +137,9 @@
 				availableYears={data.availableYears}
 				categories={data.categories}
 				filterQueryString={data.filterQueryString}
+				totalLabel={data.movements.length > 0 ? formatAmount(data.filteredTotal) : null}
+				totalClass={amountClass(data.filteredTotal)}
 			/>
-
-
 
 			{#if data.movements.length === 0}
 				<div class="py-12 text-center">

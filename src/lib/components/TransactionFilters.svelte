@@ -19,9 +19,19 @@
 		categories: Category[];
 		filterQueryString: string;
 		resetHref?: string;
+		totalLabel?: string | null;
+		totalClass?: string;
 	}
 
-	const { filters, availableYears, categories, filterQueryString, resetHref = '/' }: Props = $props();
+	const {
+		filters,
+		availableYears,
+		categories,
+		filterQueryString,
+		resetHref = '/',
+		totalLabel = null,
+		totalClass = ''
+	}: Props = $props();
 
 	const monthOptions = [
 		{ value: 1, label: 'January' },
@@ -41,6 +51,10 @@
 	// ── Panel state ──────────────────────────────────────────────────────────
 	let isPanelOpen = $state(false);
 	let isCategoryDropdownOpen = $state(false);
+
+	// Show the total beside the header only while the panel is collapsed, so the
+	// open panel can use the full width.
+	const showTotal = $derived(totalLabel != null && !isPanelOpen);
 
 	// ── Category multi-select ────────────────────────────────────────────────
 	let selectedCategoryIds = $state<string[]>([]);
@@ -129,24 +143,32 @@
 
 <div class="mb-4 rounded-xl border border-gray-200 bg-white shadow-sm overflow-visible">
 	<!-- Panel Header -->
-	<button
-		type="button"
-		onclick={() => (isPanelOpen = !isPanelOpen)}
-		class="flex w-full items-center justify-between px-4 py-3 text-left focus:outline-none"
-	>
-		<div class="flex items-center gap-2">
-			<Filter size={16} class="text-gray-500" />
-			<span class="text-sm font-semibold text-gray-700">Filters</span>
-			{#if hasActiveFilters}
-				<span class="flex h-2 w-2 rounded-full bg-primary"></span>
-			{/if}
-		</div>
-		{#if isPanelOpen}
-			<ChevronUp size={18} class="text-gray-400" />
-		{:else}
-			<ChevronDown size={18} class="text-gray-400" />
+	<div class="flex items-stretch">
+		{#if showTotal}
+			<div class="flex w-1/2 items-center justify-between gap-3 rounded-l-xl border-r border-gray-200 bg-gray-50 px-4 py-3 md:w-auto">
+				<span class="text-[10px] font-bold uppercase tracking-wider text-gray-600">Total</span>
+				<span class="text-sm font-bold whitespace-nowrap {totalClass}">{totalLabel}</span>
+			</div>
 		{/if}
-	</button>
+		<button
+			type="button"
+			onclick={() => (isPanelOpen = !isPanelOpen)}
+			class="flex flex-1 items-center justify-between px-4 py-3 text-left focus:outline-none"
+		>
+			<div class="flex items-center gap-2">
+				<Filter size={16} class="text-gray-500" />
+				<span class="text-sm font-semibold text-gray-700">Filters</span>
+				{#if hasActiveFilters}
+					<span class="flex h-2 w-2 rounded-full bg-primary"></span>
+				{/if}
+			</div>
+			{#if isPanelOpen}
+				<ChevronUp size={18} class="text-gray-400" />
+			{:else}
+				<ChevronDown size={18} class="text-gray-400" />
+			{/if}
+		</button>
+	</div>
 
 	<!-- Panel Content -->
 	{#if isPanelOpen}
