@@ -2,13 +2,18 @@
 
 Web app for tracking personal and shared expenses with spaces, categories, invite links, and Supabase authentication.
 
+**[Live app →](https://budget.valentinomettifogo.com/)**
+
 ## Stack
 
-- SvelteKit 2 + Svelte 5 (Runes)
-- TypeScript
-- Supabase (Auth + Postgres)
-- Tailwind CSS 4 (Pure utility-first approach)
-- lucide-svelte icons
+| Layer | Tech | Version |
+|-------|------|---------|
+| Framework | SvelteKit | 2.x |
+| UI | Svelte 5 (runes) | 5.x |
+| Language | TypeScript | 5.x |
+| Styling | Tailwind CSS | 4.x |
+| Auth + DB | Supabase (Auth + Postgres) | — |
+| Icons / Charts | lucide-svelte / Chart.js | — |
 
 ## Main Features
 
@@ -47,22 +52,21 @@ Notes:
 - `SUPABASE_SERVICE_ROLE_KEY` is used only on the server for admin operations.
 - Never expose the service role key in client-side code.
 
-## Install and Run
+## Getting started
 
 ```sh
 npm install
-npm run dev
+npm run dev      # dev server (host mode: vite dev --host)
 ```
 
-By default dev server runs on host mode (`vite dev --host`).
+Other commands:
 
-## Available Scripts
-
-- `npm run dev`: start local development server
-- `npm run build`: build production bundle
-- `npm run preview`: preview production build
-- `npm run check`: run `svelte-check`
-- `npm run check:watch`: run `svelte-check` in watch mode
+```sh
+npm run build        # production build
+npm run preview      # preview production build
+npm run check        # type-check with svelte-check
+npm run check:watch  # type-check in watch mode
+```
 
 ## Supabase Setup
 

@@ -1,0 +1,11 @@
+description: "Multi-user expense tracking web app with spaces, categories, and Supabase auth"
+homepage: "https://budget.valentinomettifogo.com/"
+visibility: public
+topics:
+  - svelte
+  - sveltekit
+  - typescript
+  - tailwindcss
+  - supabase
+  - expense-tracker
+  - svelte5

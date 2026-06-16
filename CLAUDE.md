@@ -2,6 +2,17 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Stack
+
+| Layer | Tech | Version |
+|-------|------|---------|
+| Framework | SvelteKit | 2.x |
+| UI | Svelte 5 (runes — `$state`, `$derived`, `$effect`) | 5.x |
+| Language | TypeScript | 5.x |
+| Styling | Tailwind CSS (utility-first, no component library) | 4.x |
+| Auth + DB | Supabase (email/password + Google OAuth, Postgres) | — |
+| Other | lucide-svelte icons, Chart.js, Vercel Analytics | — |
+
 ## Commands
 
 ```sh
@@ -12,13 +23,6 @@ npm run check:watch  # type-check in watch mode
 ```
 
 There is no test suite and no lint script beyond `svelte-check`.
-
-## Stack
-
-- SvelteKit 2 + Svelte 5 (Runes mode enabled globally — `$state`, `$derived`, `$effect`)
-- TypeScript, Tailwind CSS 4 (utility-first, no component library)
-- Supabase for auth (email/password + Google OAuth) and Postgres
-- lucide-svelte icons, Chart.js for statistics, Vercel Analytics
 
 ## Architecture
 
