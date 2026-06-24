@@ -5,6 +5,9 @@
 	import { injectAnalytics } from '@vercel/analytics/sveltekit';
 	import { afterNavigate } from '$app/navigation';
 	import { onMount } from 'svelte';
+	import { injectSpeedInsights } from '@vercel/speed-insights/sveltekit';
+
+	injectSpeedInsights();
 
 	injectAnalytics({ mode: dev ? 'development' : 'production' });
 
