@@ -327,7 +327,7 @@
 					</div>
 					<div class="mt-4 space-y-1.5">
 						<div class="flex items-center justify-between text-[10px]">
-							<span class="text-gray-400">Idle</span>
+							<span class="text-gray-400">Balance</span>
 							<span class="font-bold {idleMoney >= 0 ? 'text-green-600' : 'text-red-600'}">
 								{formatCurrency(idleMoney)} ({formatPercent(idlePercent)}%)
 							</span>
