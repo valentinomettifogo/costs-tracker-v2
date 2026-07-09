@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { version } from '$app/environment';
 	import { invalidateAll, goto } from '$app/navigation';
 	import NotificationBell from '$lib/components/NotificationBell.svelte';
 	import type { Notification } from '$lib/types';
@@ -135,6 +136,7 @@
 											{role ?? 'user'}
 										</span>
 									</div>
+									<p class="mt-1 text-[10px] font-mono text-gray-400">v {version}</p>
 								</div>
 								
 								<div class="my-1 border-t border-gray-100"></div>
