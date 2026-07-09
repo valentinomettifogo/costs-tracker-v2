@@ -22,6 +22,7 @@ export interface Notification {
 	user_id: string;
 	space_id: string;
 	movement_id: string | null;
+	movement_date: string | null;
 	actor_id: string;
 	actor_name: string;
 	amount: number;

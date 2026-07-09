@@ -102,6 +102,7 @@ CREATE TABLE costs_notifications (
     user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     space_id UUID NOT NULL REFERENCES costs_spaces(id) ON DELETE CASCADE,
     movement_id UUID REFERENCES costs_movements(id) ON DELETE SET NULL,
+    movement_date DATE,
     actor_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     actor_name TEXT NOT NULL,
     amount NUMERIC(10, 2) NOT NULL,

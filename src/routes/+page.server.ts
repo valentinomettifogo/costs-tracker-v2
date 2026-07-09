@@ -299,6 +299,7 @@ async function dispatchCreationNotifications(
 		userEmail: string | undefined;
 		spaceId: string;
 		movementId: string | null;
+		movementDate: string | null;
 		amount: number;
 		description: string | null;
 		categoryName: string | null;
@@ -327,6 +328,7 @@ async function dispatchCreationNotifications(
 		user_id: userId,
 		space_id: payload.spaceId,
 		movement_id: payload.movementId,
+		movement_date: payload.movementDate,
 		actor_id: payload.userId,
 		actor_name: actorName,
 		amount: payload.amount,
@@ -434,6 +436,7 @@ export const actions: Actions = {
 				userEmail: user.email,
 				spaceId: activeSpaceId,
 				movementId: insertedRows?.[0]?.id ?? null,
+				movementDate: date,
 				amount: finalAmount,
 				description,
 				categoryName

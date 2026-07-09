@@ -165,6 +165,13 @@
 		return `${day}/${month}/${year} · ${hours}:${minutes}`;
 	}
 
+	function formatMovementDate(dateStr: string): string {
+		// movement_date is a pure DATE (YYYY-MM-DD). Split the string directly
+		// instead of new Date(), which would shift the day across timezones.
+		const [year, month, day] = dateStr.split('-');
+		return `${day}/${month}/${year}`;
+	}
+
 	function getNotificationContent(n: Notification) {
 		const amount = new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(n.amount);
 		const title = n.amount > 0 ? 'New income' : 'New expense';
@@ -220,6 +227,9 @@
 								<p class="mt-0.5 text-xs text-gray-500 leading-relaxed">{content.message}</p>
 								{#if n.description}
 									<p class="mt-1 text-[11px] italic text-gray-400">"{n.description}"</p>
+								{/if}
+								{#if n.movement_date}
+									<p class="mt-1 text-xs font-medium text-gray-700">📅 {formatMovementDate(n.movement_date)}</p>
 								{/if}
 								<p class="mt-2 text-[10px] text-gray-400 font-medium uppercase tracking-wider">
 									{formatNotifDate(n.created_at)}
