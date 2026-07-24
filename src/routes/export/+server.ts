@@ -88,13 +88,14 @@ export const GET: RequestHandler = async ({ locals, url }) => {
 	const { data: movements, error } = await q;
 	if (error || !movements) return new Response('Failed to fetch data', { status: 500 });
 
-	// Fetch space format for locale
+	// Fetch space format (locale) + members map (paid-by names)
 	const { data: space } = await locals.supabase
-		.from('costs_spaces')
-		.select('format')
-		.eq('id', activeSpaceId)
-		.single();
+		.from('v_space_home_bootstrap')
+		.select('format, members_map')
+		.eq('space_id', activeSpaceId)
+		.maybeSingle();
 
+	const membersMap = ((space?.members_map ?? {}) as Record<string, string>);
 	const locale = space?.format === 'EN' ? 'en-US' : 'it-IT';
 	const decimalSep = locale === 'en-US' ? '.' : ',';
 	const fieldSep = locale === 'en-US' ? ',' : ';';
@@ -106,7 +107,7 @@ export const GET: RequestHandler = async ({ locals, url }) => {
 		return value;
 	}
 
-	const header = ['Date', 'Amount', 'Category', 'Type', 'Description', 'Tags'].join(fieldSep);
+	const header = ['Date', 'Amount', 'Category', 'Type', 'Paid By', 'Description', 'Tags'].join(fieldSep);
 
 	const rows = (movements as unknown as Array<{
 		amount: number;
@@ -120,11 +121,15 @@ export const GET: RequestHandler = async ({ locals, url }) => {
 		const amount = typeof m.amount === 'number' ? Math.abs(m.amount).toFixed(2).replace('.', decimalSep) : '';
 		const sign = typeof m.amount === 'number' ? (m.amount >= 0 ? '+' : '-') : '';
 		const tags = m.tags ? m.tags.join(' | ') : '';
+		const paidBy = m.expense_user_id
+			? (membersMap[m.expense_user_id] ?? m.expense_user_id.slice(0, 8))
+			: '';
 		return [
 			m.date,
 			sign + amount,
 			escapeField(cat?.name ?? ''),
 			cat?.type ?? '',
+			escapeField(paidBy),
 			escapeField(m.description ?? ''),
 			escapeField(tags)
 		].join(fieldSep);
