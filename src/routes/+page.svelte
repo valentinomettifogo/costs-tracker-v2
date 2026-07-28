@@ -221,7 +221,7 @@
 									</td>
 									<td class="px-4 py-3">{@render tagBadges(m)}</td>
 									<td class="px-4 py-3">
-										<div class="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+										<div class="flex justify-end gap-1 opacity-100 pointer-fine:opacity-0 pointer-fine:group-hover:opacity-100 transition-opacity">
 											{@render rowActions(m, 'xs')}
 										</div>
 									</td>
