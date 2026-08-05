@@ -5,7 +5,56 @@ import { dev } from '$app/environment';
 
 import { PUBLIC_SUPABASE_PUBLISHABLE_KEY, PUBLIC_SUPABASE_URL } from '$env/static/public';
 
+const supabaseHost = new URL(PUBLIC_SUPABASE_URL).host;
+
+const CONTENT_SECURITY_POLICY = [
+	"default-src 'self'",
+	"script-src 'self'",
+	"style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+	"font-src 'self' https://fonts.gstatic.com",
+	"img-src 'self' data: https:",
+	`connect-src 'self' https://${supabaseHost} wss://${supabaseHost}`,
+	"worker-src 'self'",
+	"frame-ancestors 'none'",
+	"base-uri 'self'",
+	"form-action 'self'",
+	"object-src 'none'",
+	'upgrade-insecure-requests'
+].join('; ');
+
+// Best-effort per-IP throttle for auth routes. In-memory, so it resets on cold
+// start and isn't shared across serverless instances — it's a defense-in-depth
+// layer on top of Supabase GoTrue's own (authoritative) rate limiting, not a
+// replacement for it.
+const RATE_LIMIT_WINDOW_MS = 5 * 60 * 1000;
+const RATE_LIMIT_MAX_REQUESTS = 20;
+const rateLimitBuckets = new Map<string, { count: number; resetAt: number }>();
+
+function isRateLimited(key: string): boolean {
+	const now = Date.now();
+	// Bound memory under sustained abuse instead of pruning per-entry.
+	if (rateLimitBuckets.size > 5000) rateLimitBuckets.clear();
+
+	const bucket = rateLimitBuckets.get(key);
+	if (!bucket || now > bucket.resetAt) {
+		rateLimitBuckets.set(key, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
+		return false;
+	}
+	bucket.count += 1;
+	return bucket.count > RATE_LIMIT_MAX_REQUESTS;
+}
+
 export const handle: Handle = async ({ event, resolve }) => {
+	if (
+		event.request.method === 'POST' &&
+		(event.url.pathname.startsWith('/login') || event.url.pathname.startsWith('/auth'))
+	) {
+		const key = `${event.getClientAddress()}:${event.url.pathname}`;
+		if (isRateLimited(key)) {
+			return new Response('Too many requests, please try again later.', { status: 429 });
+		}
+	}
+
 	event.locals.supabase = createServerClient(
 		PUBLIC_SUPABASE_URL,
 		PUBLIC_SUPABASE_PUBLISHABLE_KEY,
@@ -57,9 +106,29 @@ export const handle: Handle = async ({ event, resolve }) => {
 		return result;
 	};
 
-	return resolve(event, {
+	const response = await resolve(event, {
 		filterSerializedResponseHeaders(name) {
 			return name === 'content-range' || name === 'x-supabase-api-version';
 		}
 	});
+
+	// The whole app is private/invite-only: keep it out of search results even
+	// if a page's own robots meta tag is ever missed.
+	response.headers.set('X-Robots-Tag', 'noindex, nofollow');
+	response.headers.set('X-Content-Type-Options', 'nosniff');
+	response.headers.set('X-Frame-Options', 'DENY');
+	response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+	response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+
+	if (!dev) {
+		// Skip in dev: Vite's HMR needs eval + a websocket the CSP below doesn't
+		// allow, and HSTS has no meaning over plain http://localhost.
+		response.headers.set('Content-Security-Policy', CONTENT_SECURITY_POLICY);
+		response.headers.set(
+			'Strict-Transport-Security',
+			'max-age=63072000; includeSubDomains; preload'
+		);
+	}
+
+	return response;
 };

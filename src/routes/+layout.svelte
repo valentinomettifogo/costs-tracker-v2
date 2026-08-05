@@ -39,9 +39,7 @@
 </script>
 
 <svelte:head>
-	{#if data.user}
-		<meta name="robots" content="noindex, nofollow" />
-	{/if}
+	<meta name="robots" content="noindex, nofollow" />
 </svelte:head>
 
 <div class="min-h-screen bg-base-200 text-base-content">

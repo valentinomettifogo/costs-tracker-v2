@@ -24,12 +24,18 @@
 		<meta property="og:description" content="Track and manage shared expenses with your group, effortlessly." />
 		<meta property="og:type" content="website" />
 		<meta property="og:url" content="https://budget.valentinomettifogo.com" />
+		<meta property="og:image" content="https://budget.valentinomettifogo.com/icons/web-app-manifest-512x512.png" />
+		<meta name="twitter:card" content="summary" />
+		<meta name="twitter:title" content="Budget" />
+		<meta name="twitter:description" content="Track and manage shared expenses with your group, effortlessly." />
+		<meta name="twitter:image" content="https://budget.valentinomettifogo.com/icons/web-app-manifest-512x512.png" />
 		<link rel="preconnect" href="https://fonts.googleapis.com" />
 		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-		<!-- Fonts load async so they never block first paint of the splash screen -->
+		<!-- font-display=swap already avoids blocking first paint on the font file,
+		     so a plain stylesheet link works without an inline onload handler
+		     (which a script-src CSP without 'unsafe-inline' would block anyway). -->
 		<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400&display=swap" />
-		<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
-		<noscript><link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400&display=swap" rel="stylesheet" /></noscript>
+		<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400&display=swap" rel="stylesheet" />
 		<style>
 			#app-loading {
 				position: fixed; inset: 0; z-index: 9999;

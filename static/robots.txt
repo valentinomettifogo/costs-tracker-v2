@@ -1,7 +1,2 @@
 User-agent: *
-Disallow: /spaces
-Disallow: /admin
-Disallow: /statistic
-Disallow: /auth
-
-Sitemap: https://budget.valentinomettifogo.com/sitemap.xml
+Disallow: /

@@ -20,9 +20,11 @@
                 </div>
             </div>
             <div class="flex-1">
-                <div class="relative mx-auto max-w-md lg:max-w-none">
+                <div class="relative mx-auto flex max-w-md items-center justify-center lg:max-w-none">
                     <div class="absolute -inset-4 rounded-full bg-primary/10 blur-3xl"></div>
-                    <img src="/images/demo.png" alt="App Screenshot" class="relative rounded-2xl shadow-2xl border border-gray-200" />
+                    <div class="relative flex aspect-square w-full max-w-xs items-center justify-center rounded-2xl border border-gray-200 bg-white p-12 shadow-2xl">
+                        <img src="/icons/web-app-manifest-512x512.png" alt="Bloom Budget" class="w-full max-w-55" />
+                    </div>
                 </div>
             </div>
         </div>
@@ -86,4 +88,8 @@
             </div>
         </div>
     </section>
+
+    <footer class="mt-12 text-center text-sm text-gray-400">
+        <a href="/privacy" class="hover:text-gray-600 hover:underline">Privacy</a>
+    </footer>
 </div>
