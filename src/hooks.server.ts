@@ -5,23 +5,6 @@ import { dev } from '$app/environment';
 
 import { PUBLIC_SUPABASE_PUBLISHABLE_KEY, PUBLIC_SUPABASE_URL } from '$env/static/public';
 
-const supabaseHost = new URL(PUBLIC_SUPABASE_URL).host;
-
-const CONTENT_SECURITY_POLICY = [
-	"default-src 'self'",
-	"script-src 'self'",
-	"style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-	"font-src 'self' https://fonts.gstatic.com",
-	"img-src 'self' data: https:",
-	`connect-src 'self' https://${supabaseHost} wss://${supabaseHost}`,
-	"worker-src 'self'",
-	"frame-ancestors 'none'",
-	"base-uri 'self'",
-	"form-action 'self'",
-	"object-src 'none'",
-	'upgrade-insecure-requests'
-].join('; ');
-
 // Best-effort per-IP throttle for auth routes. In-memory, so it resets on cold
 // start and isn't shared across serverless instances — it's a defense-in-depth
 // layer on top of Supabase GoTrue's own (authoritative) rate limiting, not a
@@ -120,10 +103,10 @@ export const handle: Handle = async ({ event, resolve }) => {
 	response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
 	response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
 
+	// Skip in dev: HSTS has no meaning over plain http://localhost. The CSP
+	// header itself is set by SvelteKit (see the `csp` option in svelte.config.js),
+	// which also handles Vite's HMR requirements in dev automatically.
 	if (!dev) {
-		// Skip in dev: Vite's HMR needs eval + a websocket the CSP below doesn't
-		// allow, and HSTS has no meaning over plain http://localhost.
-		response.headers.set('Content-Security-Policy', CONTENT_SECURITY_POLICY);
 		response.headers.set(
 			'Strict-Transport-Security',
 			'max-age=63072000; includeSubDomains; preload'
