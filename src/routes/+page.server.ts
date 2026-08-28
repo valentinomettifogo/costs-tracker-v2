@@ -4,7 +4,12 @@ import type { Actions, PageServerLoad } from './$types';
 import { getAdminClient } from '$lib/server/auth';
 import { sendPushToUsers } from '$lib/server/push';
 import { withCache, resolveCategorySign, buildAvailableYearsFromRange } from '$lib/server/movements';
-import { parseUrlFilters, buildDateRange, type ParsedFilters } from '$lib/server/filters';
+import {
+	parseUrlFilters,
+	buildDateRange,
+	buildMovementSearchFilter,
+	type ParsedFilters
+} from '$lib/server/filters';
 
 const DEFAULT_LIMIT = 20;
 const PAGE_STEP = 20;
@@ -69,6 +74,7 @@ interface MovementFilterBuilder {
 	in(column: string, values: string[]): this;
 	eq(column: string, value: string): this;
 	ilike(column: string, pattern: string): this;
+	or(filters: string): this;
 	contains(column: string, value: string[]): this;
 }
 
@@ -93,7 +99,8 @@ function applyMovementFilters<T extends MovementFilterBuilder>(
 	if (toDate) q = q.lte('date', toDate);
 	if (filters.categoryIds.length > 0) q = q.in('category_id', filters.categoryIds);
 	if (filters.type) q = q.eq('costs_categories.type', filters.type);
-	if (filters.query) q = q.ilike('description', `%${filters.query}%`);
+	const search = buildMovementSearchFilter(filters.query);
+	if (search) q = search.mode === 'combined' ? q.or(search.filter) : q.ilike('description', search.pattern);
 	if (filters.tag) q = q.contains('tags', [filters.tag]);
 
 	return q;

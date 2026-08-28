@@ -2,7 +2,12 @@ import { redirect } from '@sveltejs/kit';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { PageServerLoad } from './$types';
 import { withCache, buildAvailableYearsFromRange } from '$lib/server/movements';
-import { parseUrlFilters, buildDateRange, type ParsedFilters } from '$lib/server/filters';
+import {
+	parseUrlFilters,
+	buildDateRange,
+	buildMovementSearchFilter,
+	type ParsedFilters
+} from '$lib/server/filters';
 
 const MAX_STATS_ROWS = 5000;
 
@@ -55,7 +60,10 @@ function runStatsQuery(supabase: SupabaseClient, activeSpaceId: string, filters:
 	if (toDate) query = query.lte('date', toDate);
 	if (filters.categoryIds.length > 0) query = query.in('category_id', filters.categoryIds);
 	if (filters.type) query = query.eq('costs_categories.type', filters.type);
-	if (filters.query) query = query.ilike('description', `%${filters.query}%`);
+	const search = buildMovementSearchFilter(filters.query);
+	if (search) {
+		query = search.mode === 'combined' ? query.or(search.filter) : query.ilike('description', search.pattern);
+	}
 	if (filters.tag) query = query.contains('tags', [filters.tag]);
 
 	return query.range(0, MAX_STATS_ROWS - 1);

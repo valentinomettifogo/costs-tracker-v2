@@ -113,6 +113,36 @@ export function parseUrlFilters(url: URL, options: ParseFilterOptions): ParsedFi
 	return { year, month, ytd, categoryIds, type, query, tag };
 }
 
+export type MovementSearchFilter =
+	| { mode: 'description'; pattern: string }
+	| { mode: 'combined'; filter: string };
+
+const AMOUNT_SEARCH_PATTERN = /^-?\d{1,8}([.,]\d{1,2})?$/;
+
+/**
+ * Builds the filter for the shared search box. Plain text always matches the
+ * description column. A term that looks like a bare amount (e.g. "45" or
+ * "45,50") also matches the movement amount exactly, in both signs, since
+ * expenses are stored as negative values. The strict numeric whitelist keeps
+ * the term safe to embed in a PostgREST `.or()` filter string (no commas or
+ * parens that would break its comma-separated condition list).
+ */
+export function buildMovementSearchFilter(searchTerm: string): MovementSearchFilter | null {
+	if (!searchTerm) return null;
+
+	if (!AMOUNT_SEARCH_PATTERN.test(searchTerm)) {
+		return { mode: 'description', pattern: `%${searchTerm}%` };
+	}
+
+	const normalized = searchTerm.replace(',', '.');
+	const absValue = Math.abs(Number.parseFloat(normalized)).toFixed(2);
+
+	return {
+		mode: 'combined',
+		filter: `description.ilike.%${normalized}%,amount.eq.${absValue},amount.eq.-${absValue}`
+	};
+}
+
 export function buildDateRange(
 	year: number | null,
 	month: number | null,

@@ -292,7 +292,7 @@
 						id="q"
 						type="search"
 						name="q"
-						placeholder="Description..."
+						placeholder="Description or amount..."
 						value={filters.query}
 						class={inputBaseClass}
 					/>

@@ -1,6 +1,7 @@
 import type { RequestHandler } from './$types';
 import { redirect } from '@sveltejs/kit';
 import { getAdminClient } from '$lib/server/auth';
+import { buildMovementSearchFilter } from '$lib/server/filters';
 
 const MAX_EXPORT = 5000;
 const VALID_TYPES = ['needs', 'wants', 'income', 'savings'] as const;
@@ -82,7 +83,8 @@ export const GET: RequestHandler = async ({ locals, url }) => {
 	if (toDate) q = q.lte('date', toDate);
 	if (categoryIds.length > 0) q = q.in('category_id', categoryIds);
 	if (type) q = q.eq('costs_categories.type', type);
-	if (query) q = q.ilike('description', `%${query}%`);
+	const search = buildMovementSearchFilter(query);
+	if (search) q = search.mode === 'combined' ? q.or(search.filter) : q.ilike('description', search.pattern);
 	if (tag) q = q.contains('tags', [tag]);
 
 	const { data: movements, error } = await q;
