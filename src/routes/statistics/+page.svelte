@@ -361,7 +361,7 @@
 				</div>
 
 				<!-- Wants Card -->
-				<div class="rounded-2xl bg-white p-4 shadow-sm border border-gray-100">
+				<div class="rounded-2xl bg-white p-4 shadow-sm border border-gray-100 order-4 lg:order-0">
 					<div class="flex items-center justify-between mb-2">
 						<span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Wants</span>
 						<div class="p-1.5 rounded-lg bg-gray-50" style="color:{colors.wants}">
@@ -383,7 +383,7 @@
 				</div>
 
 				<!-- Savings Card -->
-				<div class="rounded-2xl bg-white p-4 shadow-sm border border-gray-100">
+				<div class="rounded-2xl bg-white p-4 shadow-sm border border-gray-100 order-3 lg:order-0">
 					<div class="flex items-center justify-between mb-2">
 						<span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Savings</span>
 						<div class="p-1.5 rounded-lg bg-gray-50" style="color:{colors.savings}">
