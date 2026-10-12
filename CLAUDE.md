@@ -54,6 +54,10 @@ Checking the "recurring" checkbox in the movement form inserts one row per remai
 
 After a movement is created, `dispatchCreationNotifications()` inserts notification rows for all other space members. This is fire-and-forget (`try/catch` with no re-throw) and never blocks the response.
 
+### Account deletion
+
+`/account` lets users delete themselves. The `deleteAccount` action calls the Postgres function `prepare_account_deletion()` (`docs/query-cancellazione-account.sql`, service-role only) and then `auth.admin.deleteUser()`. Owned spaces with other members are handed to the most active member; solo spaces are deleted; the user's movements in shared spaces are kept with `user_id = NULL` (so `MovementRow.user_id` is nullable).
+
 ### Statistics aggregation
 
 The statistics page (`src/routes/statistics/+page.server.ts`) fetches raw movements server-side, aggregates them into totals, per-category totals, and a monthly trend series, and sends only the aggregated data to the browser — no raw rows are serialised.

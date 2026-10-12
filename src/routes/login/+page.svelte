@@ -17,8 +17,8 @@
 </script>
 
 <svelte:head>
-	<title>Sign in – Budget</title>
-	<meta name="description" content="Sign in to Budget to track your shared expenses." />
+	<title>Sign in – Bloom Budget</title>
+	<meta name="description" content="Sign in to Bloom Budget to track your shared expenses." />
 	<meta name="robots" content="noindex" />
 </svelte:head>
 
@@ -126,5 +126,10 @@
 			</svg>
 			<span class="text-gray-700">Continue with Google</span>
 		</button>
+
+		<p class="mt-6 text-center text-xs text-gray-400">
+			By signing in you accept the <a href="/terms" class="underline hover:text-gray-600">terms</a>
+			and acknowledge the <a href="/privacy" class="underline hover:text-gray-600">privacy notice</a>.
+		</p>
 	</section>
 </div>

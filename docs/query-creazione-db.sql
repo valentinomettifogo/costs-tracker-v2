@@ -38,7 +38,7 @@ CREATE TABLE costs_movements (
     category_id UUID REFERENCES costs_categories(id) ON DELETE SET NULL,
     date DATE NOT NULL,
     description TEXT,
-    user_id UUID NOT NULL REFERENCES user_roles(user_id) ON DELETE CASCADE,
+    user_id UUID REFERENCES user_roles(user_id) ON DELETE SET NULL, -- NULL = autore con account cancellato
     expense_user_id UUID REFERENCES user_roles(user_id) ON DELETE SET NULL,
     space_id UUID NOT NULL REFERENCES costs_spaces(id) ON DELETE CASCADE,
     tags TEXT[],

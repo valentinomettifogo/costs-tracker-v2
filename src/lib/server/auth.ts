@@ -1,4 +1,5 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import type { Cookies } from '@sveltejs/kit';
 import { env as privateEnv } from '$env/dynamic/private';
 import { PUBLIC_SUPABASE_URL } from '$env/static/public';
 import { withCache } from './movements';
@@ -30,4 +31,16 @@ export async function getUserRole(supabase: App.Locals['supabase'], userId: stri
 		}
 		return typeof data?.role === 'string' ? data.role.trim().toLowerCase() : null;
 	});
+}
+/**
+ * Drops every Supabase auth cookie. safeGetSession uses getClaims(), which
+ * trusts any unexpired JWT found in the cookies — so after a sign-out or an
+ * account deletion they must be gone even if the Auth API call failed
+ * (otherwise the user looks logged in for up to the token lifetime).
+ */
+export function clearAuthCookies(cookies: Cookies, locals: App.Locals) {
+	for (const { name } of cookies.getAll()) {
+		if (name.startsWith('sb-')) cookies.delete(name, { path: '/' });
+	}
+	locals._sessionCache = undefined;
 }

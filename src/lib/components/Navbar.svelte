@@ -4,7 +4,7 @@
 	import { invalidateAll, goto } from '$app/navigation';
 	import NotificationBell from '$lib/components/NotificationBell.svelte';
 	import type { Notification } from '$lib/types';
-	import { Bell, LogOut, LayoutGrid, BarChart3, Users } from 'lucide-svelte';
+	import { Bell, LogOut, LayoutGrid, BarChart3, Users, UserCog } from 'lucide-svelte';
 
 	interface Props {
 		user: { id?: string; email?: string; user_metadata?: Record<string, unknown> } | null;
@@ -72,7 +72,7 @@
 			<!-- Logo -->
 			<div class="flex items-center">
 				<a href="/" class="flex shrink-0 items-center">
-					<img src="/images/logo-navbar.png" alt="Costs Tracker" class="h-10 w-auto" />
+					<img src="/images/logo-navbar.png" alt="Bloom Budget" class="h-10 w-auto" />
 				</a>
 
 				<!-- Desktop Menu -->
@@ -149,6 +149,18 @@
 									<Users size={16} class="text-gray-400" />
 									Spaces
 								</a>
+								<a
+									href="/account"
+									class="flex w-full items-center gap-2 rounded-lg px-4 py-2 text-left text-sm text-gray-700 transition-colors hover:bg-gray-50"
+									onclick={() => (isUserMenuOpen = false)}
+								>
+									<UserCog size={16} class="text-gray-400" />
+									Account
+								</a>
+								<div class="flex gap-3 px-4 pt-1 pb-2 text-xs text-gray-400">
+									<a href="/privacy" class="hover:text-gray-600 hover:underline" onclick={() => (isUserMenuOpen = false)}>Privacy</a>
+									<a href="/terms" class="hover:text-gray-600 hover:underline" onclick={() => (isUserMenuOpen = false)}>Terms</a>
+								</div>
 
 								<div class="my-1 border-t border-gray-100"></div>
 								

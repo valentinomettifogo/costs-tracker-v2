@@ -1,5 +1,6 @@
 import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
+import { clearAuthCookies } from '$lib/server/auth';
 
 export const load: PageServerLoad = async ({ locals, url }) => {
 	const { user } = await locals.safeGetSession();
@@ -31,14 +32,7 @@ export const actions: Actions = {
 	},
 	logout: async ({ locals, cookies }) => {
 		await locals.supabase.auth.signOut();
-		// safeGetSession uses getClaims(), which trusts any unexpired JWT found
-		// in the cookies — so make absolutely sure they are gone, even when the
-		// sign-out API call fails (otherwise the user looks logged in for up to
-		// the token lifetime and /login keeps bouncing back to /).
-		for (const { name } of cookies.getAll()) {
-			if (name.startsWith('sb-')) cookies.delete(name, { path: '/' });
-		}
-		locals._sessionCache = undefined;
+		clearAuthCookies(cookies, locals);
 		throw redirect(303, '/');
 	}
 };

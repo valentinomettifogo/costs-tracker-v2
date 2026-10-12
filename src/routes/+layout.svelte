@@ -1,4 +1,12 @@
 <script lang="ts">
+	// Self-hosted (no request to Google Fonts → no visitor IP sent to Google).
+	import '@fontsource/be-vietnam-pro/latin-400.css';
+	import '@fontsource/be-vietnam-pro/latin-400-italic.css';
+	import '@fontsource/be-vietnam-pro/latin-500.css';
+	import '@fontsource/be-vietnam-pro/latin-600.css';
+	import '@fontsource/be-vietnam-pro/latin-700.css';
+	import '@fontsource/be-vietnam-pro/latin-800.css';
+	import '@fontsource/be-vietnam-pro/latin-900.css';
 	import "./layout.css";
 	import Navbar from "$lib/components/Navbar.svelte";
 	import { dev } from '$app/environment';

@@ -5,6 +5,9 @@ import { dev } from '$app/environment';
 
 import { PUBLIC_SUPABASE_PUBLISHABLE_KEY, PUBLIC_SUPABASE_URL } from '$env/static/public';
 
+// Public pages Google may index (keep in sync with static/sitemap.xml).
+const INDEXABLE_PATHS = new Set(['/', '/privacy', '/terms']);
+
 // Best-effort per-IP throttle for auth routes. In-memory, so it resets on cold
 // start and isn't shared across serverless instances — it's a defense-in-depth
 // layer on top of Supabase GoTrue's own (authoritative) rate limiting, not a
@@ -95,9 +98,11 @@ export const handle: Handle = async ({ event, resolve }) => {
 		}
 	});
 
-	// The whole app is private/invite-only: keep it out of search results even
-	// if a page's own robots meta tag is ever missed.
-	response.headers.set('X-Robots-Tag', 'noindex, nofollow');
+	// Only the public pages may appear in search results; everything else
+	// (login, app pages, endpoints) stays out even if a page forgets its meta tag.
+	if (!INDEXABLE_PATHS.has(event.url.pathname)) {
+		response.headers.set('X-Robots-Tag', 'noindex, nofollow');
+	}
 	response.headers.set('X-Content-Type-Options', 'nosniff');
 	response.headers.set('X-Frame-Options', 'DENY');
 	response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');

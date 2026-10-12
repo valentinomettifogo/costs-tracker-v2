@@ -105,7 +105,10 @@
 </script>
 
 <svelte:head>
-	<title>Budget – Track shared expenses</title>
+	<title>Bloom Budget – Track shared expenses</title>
+	{#if !data.user}
+		<link rel="canonical" href="https://budget.valentinomettifogo.com/" />
+	{/if}
 </svelte:head>
 
 {#if !data.user}

@@ -10,7 +10,8 @@ export interface MovementRow {
 	amount: number;
 	date: string;
 	description: string | null;
-	user_id: string;
+	/** null when the author deleted their account */
+	user_id: string | null;
 	expense_user_id: string | null;
 	tags: string[] | null;
 	category_id: string | null;

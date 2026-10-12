@@ -1,8 +1,16 @@
 <script lang="ts">
+    import { page } from '$app/state';
     import { CreditCard, Users, Smartphone, BarChart3, ShieldCheck, Zap } from 'lucide-svelte';
+
+    const isAccountDeleted = $derived(page.url.searchParams.get('account_deleted') === '1');
 </script>
 
 <div class="mx-auto max-w-6xl px-4 py-12 md:py-20">
+    {#if isAccountDeleted}
+        <p class="mb-8 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800" role="status">
+            Your account and personal data have been deleted.
+        </p>
+    {/if}
     <!-- Hero Section -->
     <section class="relative overflow-hidden rounded-3xl bg-white px-6 py-16 shadow-sm md:px-12 md:py-24 lg:px-16 mb-20 border border-gray-100">
         <div class="relative z-10 flex flex-col items-center gap-12 lg:flex-row">
@@ -78,7 +86,6 @@
         <div class="mx-auto max-w-3xl">
             <h2 class="text-3xl font-extrabold md:text-4xl">Ready to take control?</h2>
             <p class="mt-6 text-lg text-white/90">
-                Join thousands of users who are already managing their costs smarter. 
                 Start tracking for free today.
             </p>
             <div class="mt-10 flex justify-center">
@@ -91,5 +98,7 @@
 
     <footer class="mt-12 text-center text-sm text-gray-400">
         <a href="/privacy" class="hover:text-gray-600 hover:underline">Privacy</a>
+        <span aria-hidden="true" class="mx-2">·</span>
+        <a href="/terms" class="hover:text-gray-600 hover:underline">Terms</a>
     </footer>
 </div>
